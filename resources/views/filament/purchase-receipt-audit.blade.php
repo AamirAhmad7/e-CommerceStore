@@ -1,0 +1,8 @@
+@php($movements=App\Models\StockMovement::whereIn('purchase_receipt_line_id',$receipt->lines->modelKeys())->get()->groupBy('purchase_receipt_line_id'))
+<div><h3>{{ $receipt->reference }} / {{ $receipt->order->reference }} / {{ $receipt->kind }}</h3><p>{{ $receipt->created_at }} / {{ $receipt->actor?->name ?? 'Staff not available' }} / delivery note {{ $receipt->delivery_reference ?: 'not entered' }}</p><p>{{ $receipt->reason }}</p>
+@if($receipt->correction_of_id)<p>Linked correction of receipt #{{ $receipt->correction_of_id }}. Original record retained.</p>@endif
+@foreach($receipt->lines as $line)<p>{{ $line->orderLine->sku }} / {{ $line->orderLine->color }} / {{ $line->orderLine->size }}: accepted {{ sprintf('%+d',$line->accepted) }}, damaged replacement expected {{ sprintf('%+d',$line->damaged_replace) }}, damaged shortfall accepted {{ sprintf('%+d',$line->damaged_short) }}, short-closed {{ sprintf('%+d',$line->short_closed) }}; actual unit cost {{ App\Services\Pricing::format($line->unit_cost_minor) }}.</p>
+@foreach($movements->get($line->id,collect()) as $movement)<p>Inventory movement #{{ $movement->id }} / on-hand change {{ $movement->on_hand_delta }} / reserved change {{ $movement->reserved_delta }} / {{ $movement->reason }}</p>@endforeach
+@endforeach
+@foreach($receipt->corrections()->orderBy('id')->get() as $adjustment)<p>Correction {{ $adjustment->reference }} at {{ $adjustment->created_at }}: {{ $adjustment->reason }}</p>@endforeach
+</div>

@@ -1,0 +1,9 @@
+@php($sources=App\Models\SupplierSource::where('supplier_id',$order->supplier_id)->whereIn('product_variant_id',$order->lines->pluck('product_variant_id'))->get()->keyBy('product_variant_id'))
+<div><h3>{{ $order->reference }} / {{ $order->supplier_name }}</h3><p>Status {{ str_replace('_',' ',$order->status) }} / expected {{ $order->expected_at?->toDateString() ?? 'not entered' }}</p>
+@if(!$order->supplier->is_active)<p>Supplier archived: cannot issue.</p>@endif
+@foreach($order->lines as $line)
+@if(!$line->variant->is_active || !$line->variant->productColor->product?->is_active)<p><strong>{{ $line->sku }} inactive / archived: cannot issue.</strong></p>@endif
+@if(($sources[$line->product_variant_id]?->quoted_cost_minor ?? null)!==$line->unit_cost_minor)<p>{{ $line->sku }}: latest quote {{ App\Services\Pricing::format($sources[$line->product_variant_id]?->quoted_cost_minor ?? null) }} differs from agreed cost below. Review before issuing.</p>@endif
+<p>{{ $line->product_name }} / {{ $line->color }} / {{ $line->size }} / {{ $line->sku }} x {{ $line->quantity }} @ {{ App\Services\Pricing::format($line->unit_cost_minor) }} = {{ $line->unit_cost_minor===null?'Unknown':App\Services\Pricing::format($line->quantity*$line->unit_cost_minor) }}. Still expected: {{ $line->outstanding }}.</p>@endforeach
+<p>Merchandise total: {{ $order->lines->contains(fn($l)=>$l->unit_cost_minor===null)?'Incomplete costs':App\Services\Pricing::format($order->lines->sum(fn($l)=>$l->quantity*$l->unit_cost_minor)) }}. Freight estimate: {{ $order->freight_minor===null?'Not entered':App\Services\Pricing::format($order->freight_minor) }}.</p>
+<p>Issuing counts these quantities as incoming. Nothing is sent to the supplier automatically, and no sellable stock is added.</p></div>

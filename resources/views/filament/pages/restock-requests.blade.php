@@ -1,0 +1,1 @@
+<x-filament-panels::page><p>Confirmed requests are a demand signal, not reserved stock. They do not create purchase orders or change reorder suggestions. Individual email addresses are kept off this overview.</p>{{ $this->table }}</x-filament-panels::page>

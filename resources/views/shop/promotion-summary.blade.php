@@ -1,0 +1,4 @@
+@if($promotion)
+@if($promotion['notice'])<p class="notice">{{ $promotion['notice'] }}</p>@endif
+@if($promotion['snapshot'])<p><strong>{{ $promotion['snapshot']['name'] }}</strong> @if($promotion['snapshot']['code']) ({{ $promotion['snapshot']['code'] }}) @endif</p><details><summary>Offer terms and savings</summary><p>{{ $promotion['snapshot']['summary'] }}</p><p>Eligible merchandise {{ \App\Services\Pricing::format($promotion['snapshot']['eligible_minor']) }}. Merchandise saving {{ \App\Services\Pricing::format($promotion['snapshot']['merchandise_discount_minor']) }}. Shipping saving {{ \App\Services\Pricing::format($promotion['snapshot']['shipping_discount_minor']) }}.</p></details>@endif
+@endif

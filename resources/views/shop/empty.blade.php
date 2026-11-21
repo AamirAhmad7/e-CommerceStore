@@ -1,0 +1,1 @@
+<div class="empty-catalog"><p>{{ count($chips) ? 'No products match these choices.' : 'No products are currently available.' }}</p>@if(count($chips))<p>Try <a href="{{ $chips[count($chips)-1]['url'] }}">removing {{ $chips[count($chips)-1]['label'] }}</a>, or <a href="{{ $clearUrl }}">clear all filters</a>.</p>@else<p>Please check back for new products.</p>@endif</div>

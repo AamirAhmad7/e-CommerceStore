@@ -1,0 +1,1 @@
+<x-filament-panels::page><p><a href="{{ App\Filament\Resources\PurchaseOrders\PurchaseOrderResource::getUrl() }}">Purchasing overview</a> ? Receipts and linked corrections are immutable. @if($recent)Showing entries from the last 30 days.@endif</p>{{ $this->table }}</x-filament-panels::page>

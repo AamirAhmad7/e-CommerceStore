@@ -1,0 +1,4 @@
+@if($order->promotion_snapshot)
+<p><strong>{{ $order->promotion_snapshot['name'] }}</strong> @if($order->promotion_snapshot['code'])Code {{ $order->promotion_snapshot['code'] }}@endif</p><p>{{ $order->promotion_snapshot['summary'] }}</p><p>Saved merchandise discount: {{ \App\Services\Pricing::format($order->promotion_snapshot['merchandise_discount_minor'],$order->currency) }}. Shipping saving: {{ \App\Services\Pricing::format($order->promotion_snapshot['shipping_discount_minor'],$order->currency) }}.</p>
+@foreach($order->lines as $line)@if($line->promotion_discount_minor)<p>{{ $line->sku }}: discount {{ \App\Services\Pricing::format($line->promotion_discount_minor,$order->currency) }}; merchandise paid {{ \App\Services\Pricing::format($line->total_minor-$line->promotion_discount_minor,$order->currency) }}.</p>@endif @endforeach
+@endif
