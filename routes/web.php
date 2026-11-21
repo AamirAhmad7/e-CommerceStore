@@ -16,6 +16,8 @@ use App\Http\Controllers\ShopController;
 use App\Http\Middleware\PrivateShopping;
 use App\Services\CommerceSettings;
 use App\Support\StorefrontCampaigns;
+use App\Support\StorefrontSeo;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/products/{product:slug}', [ProductController::class, 'show'])->name('products.show');
@@ -66,3 +68,9 @@ Route::middleware(PrivateShopping::class)->group(function (): void {
     Route::get('/restock-alerts/{token}', [RestockAlertController::class, 'show'])->where('token', '[a-zA-Z0-9]{64}')->middleware('throttle:restock-view')->name('restock.manage');
     Route::post('/restock-alerts/{token}', [RestockAlertController::class, 'update'])->where('token', '[a-zA-Z0-9]{64}')->middleware('throttle:restock-manage')->name('restock.update');
 });
+
+Route::get('/robots.txt', function (): Response {
+    $content = StorefrontSeo::indexingAllowed() ? "User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /cart\nDisallow: /checkout\nDisallow: /orders/\nDisallow: /restock-alerts/\nSitemap: ".StorefrontCampaigns::url('sitemap')."\n" : "User-agent: *\nDisallow: /\n";
+
+    return response($content)->header('Content-Type', 'text/plain; charset=UTF-8');
+})->name('robots');

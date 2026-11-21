@@ -46,12 +46,12 @@ class StorefrontRefreshTest extends TestCase
         $this->get('/homepage/preview')->assertOk()->assertSee('Quiet autumn edit')->assertHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
         $editor->call('publish')->assertHasNoErrors();
         $this->get('/')->assertSee('Quiet autumn edit')->assertSee('Sialkot Atelier');
-        request()->attributes->remove('store_brand_name');
+        request()->attributes->remove('store_public_settings');
         DB::enableQueryLog();
         DB::flushQueryLog();
         for ($i = 0; $i < 5; $i++) {
             $this->assertSame('Sialkot Atelier', StoreSettings::brandName());
-        }$this->assertCount(1, DB::getQueryLog());
+        }$this->assertCount(0, DB::getQueryLog());
         DB::disableQueryLog();
         StoreSettings::setBrandName('Renamed Atelier');
         $this->assertSame('Renamed Atelier', StoreSettings::brandName());
@@ -75,6 +75,6 @@ class StorefrontRefreshTest extends TestCase
         Homepage::create(['key' => 'main', 'published' => ['headline' => 'Winter', 'featured' => [['collection_id' => $b->id], ['collection_id' => $private->id], ['collection_id' => $a->id]]], 'draft' => ['headline' => 'Draft', 'featured' => [['collection_id' => $private->id]]]]);
         $response = $this->get('/')->assertOk()->assertSeeInOrder(['Second edit', 'First edit'])->assertDontSee('Private edit')->assertSee('aria-controls="store-menu"', false);
         $this->get('/collections/second-edit?currency=PKR')->assertOk()->assertSessionHas('continue_shopping', '/collections/second-edit?currency=PKR');
-        $this->get('/cart')->assertSee('/collections/second-edit?currency=PKR',false);
+        $this->get('/cart')->assertSee('/collections/second-edit?currency=PKR', false);
     }
 }

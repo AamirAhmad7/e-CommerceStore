@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Products\Schemas;
 
 use App\Models\ProductVariant;
 use App\Support\ProductPresentation;
+use App\Support\SeoFields;
 use Filament\Actions\Action;
 use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\Repeater;
@@ -27,6 +28,7 @@ class ProductForm
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
+            SeoFields::section('name', 'description'),
             Section::make('Storefront readiness')->schema([
                 ViewEntry::make('readiness')->view('filament.product-readiness')
                     ->viewData(fn ($record) => ['findings' => $record?->exists ? ProductPresentation::readiness($record->fresh()) : []]),

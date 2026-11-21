@@ -8,6 +8,7 @@ use App\Services\Inventory;
 use App\Services\Pricing;
 use App\Support\ProductPhoto;
 use App\Support\ProductPresentation;
+use App\Support\StorefrontSeo;
 use App\Support\StoreSettings;
 use Filament\Facades\Filament;
 use Filament\Models\Contracts\FilamentUser;
@@ -118,9 +119,14 @@ class ProductController extends Controller
         }
         $brand = StoreSettings::brandName();
         $canonical = route('products.show', $product->slug);
-        $metaDescription = Str::limit(Str::squish(strip_tags($product->description ?: $product->name.' by '.$brand.'. Explore colors, photos and offered sizes.')), 155, '');
+        $metaDescription = Str::limit(Str::squish(strip_tags($product->seo_description ?: $product->description ?: $product->name.' by '.$brand.'. Explore colors, photos and offered sizes.')), 155, '');
+        if ($product->seo_description) {
+            $metaDescription = StorefrontSeo::description($product->seo_description);
+        }
+        $seoTitle = $product->seo_title ?: $product->name.' | '.$brand;
+        $structuredData = $preview ? null : StorefrontSeo::product($product, $selected, $selectedVariant, $currency, $metaDescription);
         $socialPhoto = $selected['photos'][0] ?? null;
 
-        return response()->view('products.show', compact('product', 'preview', 'colors', 'selected', 'selectedVariant', 'shared', 'guides', 'measurementGuide', 'colorUnavailable', 'sizeUnavailable', 'brand', 'canonical', 'metaDescription', 'socialPhoto', 'currency', 'whatsappUrl'));
+        return response()->view('products.show', compact('seoTitle', 'structuredData', 'product', 'preview', 'colors', 'selected', 'selectedVariant', 'shared', 'guides', 'measurementGuide', 'colorUnavailable', 'sizeUnavailable', 'brand', 'canonical', 'metaDescription', 'socialPhoto', 'currency', 'whatsappUrl'));
     }
 }

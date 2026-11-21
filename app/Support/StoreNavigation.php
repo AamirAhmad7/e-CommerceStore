@@ -17,7 +17,7 @@ final class StoreNavigation
         }
         $home = $request->attributes->has('store_navigation_home') ? $request->attributes->get('store_navigation_home') : Homepage::where('key', 'main')->first(['published']);
         $ids = collect($home?->published['featured'] ?? [])->pluck('collection_id')->filter()->unique()->take(4);
-        $collections = Collection::whereIn('id', $ids)->where('is_published', true)->whereHas('eligibleItems')->get(['id', 'slug', 'title'])->keyBy('id');
+        $collections = $request->attributes->get('store_navigation_collections') ?? ($ids->isEmpty() ? collect() : Collection::whereIn('id', $ids)->where('is_published', true)->whereHas('eligibleItems')->get(['id', 'slug', 'title'])->keyBy('id'));
         $links = [];
         foreach ($ids as $id) {
             if ($c = $collections->get($id)) {

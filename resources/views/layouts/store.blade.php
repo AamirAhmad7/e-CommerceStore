@@ -1,12 +1,14 @@
 @php($brand = $brand ?? \App\Support\StoreSettings::brandName())
 <!DOCTYPE html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>@yield('title', ($title ?? 'Shop').' | '.$brand)</title>
+<title>@yield('title', $seoTitle ?? ($title ?? 'Shop').' | '.$brand)</title>
 <meta property="og:site_name" content="{{ $brand }}">
 <meta name="description" content="{{ $metaDescription ?? 'Explore the '.$brand.' catalog, colors and sizes.' }}">
 @if(isset($canonical))<link rel="canonical" href="{{ $canonical }}">@endif
-@if(($noindex ?? false) || request()->is('cart*','checkout*','orders/*'))<meta name="robots" content="noindex, nofollow">@endif
+@if(!\App\Support\StorefrontSeo::indexingAllowed() || ($noindex ?? false) || request()->is('cart*','checkout*','orders/*'))<meta name="robots" content="noindex, nofollow">@endif
 @yield('meta')
+@if(isset($structuredData))<script type="application/ld+json">{!! \Illuminate\Support\Js::encode($structuredData) !!}</script>@endif
+@if(request()->routeIs('home') && !($preview ?? false))<script type="application/ld+json">{!! \Illuminate\Support\Js::encode(\App\Support\StorefrontSeo::organization()) !!}</script>@endif
 @vite(['resources/css/app.css','resources/js/app.js'])
 </head><body class="product-page">
 <a class="skip-link" href="#product">Skip to content</a>

@@ -1,9 +1,9 @@
 @extends('layouts.store')
-@section('title', $headline.' | '.$brand)
+@section('title', $seoTitle)
 @section('meta')
 @if($preview)<meta name="robots" content="noindex, nofollow, noarchive">@endif
-<meta property="og:type" content="website"><meta property="og:title" content="{{ $headline }} | {{ $brand }}"><meta property="og:description" content="{{ $metaDescription }}"><meta property="og:url" content="{{ $canonical }}">
-@if($hero)<meta property="og:image" content="{{ $hero['src'] }}"><meta property="og:image:alt" content="{{ $hero['alt'] }}">@endif
+<meta property="og:type" content="website"><meta property="og:title" content="{{ $seoTitle }}"><meta property="og:description" content="{{ $metaDescription }}"><meta property="og:url" content="{{ $canonical }}">
+@if($hero)<meta property="og:image" content="{{ $hero['src'] }}"><meta property="og:image:alt" content="{{ $hero['alt'] }}"><meta property="og:image:width" content="{{ $hero['width'] }}"><meta property="og:image:height" content="{{ $hero['height'] }}">@endif
 @endsection
 @section('content')
 @if($preview)<aside class="preview-banner">Homepage draft preview. Save draft edits before previewing. Customers still see the published version.</aside>@endif

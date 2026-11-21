@@ -1,9 +1,9 @@
 @extends('layouts.store')
-@section('title', $collection->title.' | '.\App\Support\StoreSettings::brandName())
+@section('title', $seoTitle)
 @section('meta')
 @if($preview)<meta name="robots" content="noindex, nofollow, noarchive">@endif
-<meta property="og:type" content="website"><meta property="og:title" content="{{ $collection->title }} | {{ \App\Support\StoreSettings::brandName() }}"><meta property="og:description" content="{{ $metaDescription }}"><meta property="og:url" content="{{ $canonical }}">
-@if($cover)<meta property="og:image" content="{{ $cover['src'] }}"><meta property="og:image:alt" content="{{ $cover['alt'] }}">@endif
+<meta property="og:type" content="website"><meta property="og:title" content="{{ $seoTitle }}"><meta property="og:description" content="{{ $metaDescription }}"><meta property="og:url" content="{{ $canonical }}">
+@if($cover)<meta property="og:image" content="{{ $cover['src'] }}"><meta property="og:image:alt" content="{{ $cover['alt'] }}"><meta property="og:image:width" content="{{ $cover['width'] }}"><meta property="og:image:height" content="{{ $cover['height'] }}">@endif
 @endsection
 @section('content')
 @if($preview)<aside class="preview-banner">Staff preview. Saved changes only; only storefront-eligible products are shown. This does not publish the collection.</aside>@endif

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Categories\Schemas;
 
+use App\Support\SeoFields;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -12,6 +13,7 @@ class CategoryForm
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
+            SeoFields::section('name', 'description'),
             TextInput::make('name')
                 ->label('Category name')
                 ->required()

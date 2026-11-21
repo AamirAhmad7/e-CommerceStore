@@ -16,7 +16,7 @@ final class StorefrontCampaigns
 
     public static function cardRelations(): array
     {
-        return ['product.category', 'product.colors.variants' => fn ($q) => $q->where('is_active', true), 'product.colors.media' => fn ($q) => $q->where('collection_name', 'gallery')->orderBy('order_column')->orderBy('id')->limit(1)];
+        return ['product.colors.variants' => fn ($q) => $q->where('is_active', true), 'product.colors.media' => fn ($q) => $q->where('collection_name', 'gallery')->orderBy('order_column')->orderBy('id')->limit(1)];
     }
 
     public static function card(Product $product, string $currency, ?int $featuredColor = null): array

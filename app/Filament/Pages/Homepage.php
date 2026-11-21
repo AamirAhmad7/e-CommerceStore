@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Models\Collection;
 use App\Models\Homepage as HomeRecord;
+use App\Support\SeoFields;
 use App\Support\StoreSettings;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Repeater;
@@ -45,6 +46,7 @@ class Homepage extends Page
     public function form(Schema $schema): Schema
     {
         return $schema->model($this->record)->statePath('data')->components([
+            SeoFields::section('headline', 'supporting_text'),
             TextEntry::make('public_store_name')->label('Public store name')->state(fn (): string => StoreSettings::brandName()),
             Actions::make([Action::make('changeStoreName')->label('Change store name')->url(\App\Filament\Pages\StoreSettings::getUrl())->openUrlInNewTab()]),
             TextInput::make('headline')->label('Hero headline')->helperText('Campaign headline only. Saving a draft does not change the public store name or published homepage.')->required()->maxLength(160),

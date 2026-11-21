@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Collections;
 use App\Models\Collection;
 use App\Models\Product;
 use App\Models\ProductColor;
+use App\Support\SeoFields;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -53,6 +54,7 @@ class CollectionResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
+            SeoFields::section('title', 'introduction'),
             TextInput::make('title')->required()->maxLength(160)->live(onBlur: true)->afterStateUpdated(function (?string $state, ?string $old, Get $get, Set $set, ?Collection $record): void {
                 if (! $record && (! $get('slug') || $get('slug') === Str::slug($old ?? ''))) {
                     $set('slug', Str::slug($state ?? ''));

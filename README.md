@@ -1,5 +1,70 @@
 # Leather Store
 
+## Master roadmap milestone - 22 November 2026
+
+Start at http://127.0.0.1:8001/collections/demo-launch-jackets. First admin screen: http://127.0.0.1:8001/admin/products/6/edit (DEMO Launch Jacket); expand **Search and sharing** to try the new metadata controls. Normal catalog, prices, stock, publication, credentials and uploads were preserved.
+
+| Items | Status | Outcome / remaining work |
+| --- | --- | --- |
+| 1-6, 8: baseline and recovery | Verified locally | Existing purchasing, promotions, dispatch, assisted sales, discovery and restock modules retained. Local Git checkpoint, isolated restore, authenticated normal admin checks and demo baseline completed. |
+| 7: browser smoke journey | Implemented | Reusable runner and guarded demo manifest prepared. Browser execution is Deferred: browser access host unavailable; optional Playwright runner is not installed. No browser order was placed. |
+| 9-16: storefront speed/usability | Verified locally | Existing responsive components retained; redundant homepage queries removed and public branding/contact cache added with save invalidation. WebP/responsive media retained. AVIF encoder exists, but conversion rollout is Deferred without a measured benefit. Visual acceptance remains with owner. |
+| 17-20: initial SEO | Verified locally | Owner metadata overrides/previews, draft-safe homepage SEO, PKR Product/Offer and breadcrumbs, Organization, sitemap lastmod and environment-aware indexing policy. |
+| 21: redirects manager | Deferred | **Exact next work item:** safe internal redirects with loop/chain checks and deliberate retired-product destinations. |
+| 22, 24: social previews and missing pages | Implemented | Existing-image social previews now include dimensions; branded 404 is implemented. Optional IndexNow is Deferred. |
+| 23: merchant feeds | Deferred | Exporter and local feed validation remain to implement; no external submissions occurred. |
+| 25-56: content, retention, merchandising, reporting | Deferred | Not implemented by this milestone; existing working promotions and commerce remain available. Continue phase order after item 21. |
+| 57-80: production, markets, payments, launch | Deferred | No deployment, provider enrollment, live payment or production mail activation. Existing COD/manual transfer remain intact. |
+| Production launch decisions | Needs owner input | Approved contact/policy wording, production host/domain and mail transport; later market destinations and verified card-merchant eligibility. These do not block local redirects work. |
+
+### Recovery and environment status
+
+Local Git was initialized after checking both the project and parent; checkpoint **bb0096d** preserves the pre-roadmap implementation. No remote was added or push performed. Secrets, dumps, databases, uploads, proofs, dependencies, builds and runtime files are ignored. Keep the original APP_KEY separately: encrypted database values cannot be recovered with a replacement key.
+
+Demo backup completed at storage/app/backups/20261121-192913-e405d1 (filename uses host UTC). It was restored into **leather_store_restore_demo_20261122** and storage/app/restores/leather_store_restore_demo_20261122. **135 files** matched SHA-256 checksums, including demo-black-front.jpg and the private care-proof.png fixture. Neither running database was replaced. This is an offline restore of the baseline before the SEO migration; it is not a third running storefront.
+
+Reusable commands (run from this project in Laragon PowerShell):
+
+```powershell
+$php = 'C:/laragon/bin/php/php-8.4.12-nts-Win32-vs17-x64/php.exe'
+& $php artisan store:backup --no-interaction
+# Add --env=demo for the isolated demo backup. Copy the printed absolute backup path below.
+& $php artisan store:restore 'ABSOLUTE_BACKUP_PATH' leather_store_restore_new_check --no-interaction
+```
+
+For a coordinated backup, pause uploads, order writes and workers first; the SQL dump is transactional but media copying is not a database transaction. The command keeps credentials off command arguments, writes only under private storage, verifies file hashes, and refuses an existing restore database/directory or any normal/demo destination. A restore remains offline: do not start its workers or publicly expose its private files. Retain backups securely and arrange off-server copies separately; none were transferred externally.
+
+**Normal 8000 / leather_store:** all migrations applied, including nullable SEO columns. Homepage, authorized Purchasing/Promotions empty states and product editor rendered HTTP 200. **Demo 8001 / leather_store_demo:** all migrations applied; logged mail, separate media and existing demo restock worker retained. No migration command remains. The known demo starting point was reused without resetting prior fixture edits or orders.
+
+### Measured budget and checks
+
+Before/after measurements used the same local MySQL demo (13 non-deleted products, 12 visible), three separate PHP HTTP-kernel requests per route, empty array-backed cart/session, and no browser/network throttling. Warm public-branding cache: homepage **14 -> 10 SQL queries**, collection **14 -> 13**, product **12 -> 10**, empty cart **4 -> 3**. Homepage HTML stayed 23,716 bytes during the optimization; product HTML increased from 31,283 to about 33,143 bytes after structured data was added. Cold branding-cache fill adds one SQL query. Warm homepage render samples were roughly 141-251 ms before and 206-210 ms after; timing noise does not establish a latency improvement. The query reductions are the measured improvement.
+
+Current built assets: CSS 33.05 kB / 8.16 kB gzip; shared JS 5.07 kB / 1.89 kB gzip; product-only JS 5.66 kB / 1.96 kB gzip. Keep this fixture within 12 homepage/product queries (warm branding cache), 15 collection queries, 40 kB product HTML and 15 kB combined gzip storefront assets unless a feature justifies the increase. These are regression budgets, not mobile performance promises. Repeat with `& $php artisan store:baseline --env=demo --no-interaction`. The baseline command uses isolated array sessions; `--path=/admin/promotions --admin` checks an actual authorized local page, not a login redirect.
+
+Public branding/WhatsApp values are cached for five minutes in a file cache (configurable STORE_PUBLIC_CACHE_STORE), separately by database and app URL. Store Settings saves invalidate immediately. Out-of-band SQL changes may take up to five minutes. Stock, prices, carts, previews and private order content are not placed in this cache. Existing collection data is reused for homepage navigation.
+
+Focused PHP checks: **16 tests / 145 assertions passed** (not the full suite). They cover recovery destination guards, branding/contact invalidation, homepage publication and SEO, exact-price availability markup, private preview exclusion, sitemap/robots and missing-page behavior. A stale WhatsApp test fixture was updated to supply the price and stock its selected-size assertion requires; purchase eligibility was not weakened.
+
+### SEO controls and browser smoke
+
+Products, Categories, Collections and Homepage now have **Search and sharing** overrides with title/description previews. Empty overrides use existing names/text. Homepage edits stay private until Publish. USD is browsing-only, so no USD checkout Offer is emitted; unknown prices/stock and unpublished products do not produce purchasable offers. No ratings, GTINs, manufacturer claims or policy commitments are fabricated. Implementation references: [Google Product structured data](https://developers.google.com/search/docs/appearance/structured-data/product-snippet), [Google noindex guidance](https://developers.google.com/search/docs/crawling-indexing/block-indexing).
+
+Indexing defaults off. Production indexing requires APP_ENV=production, a non-local APP_URL and STORE_INDEXING_ENABLED=true, followed by the normal configuration-cache rollout. Dynamic /robots.txt replaces the old static allow-all file; HTML also carries noindex locally. Robots directives are not access control. Existing private authorization remains required. Merchant feeds, redirect management, named AI-crawler settings and IndexNow are not completed yet.
+
+The lean optional browser runner checks collection -> exact color/size -> cart -> SMOKE10 -> guest COD, plus a disabled sold-out size. It uses a fresh browser context, no screenshots, and creates one clearly fictional order. The manifest must be regenerated within an hour of running. Browser execution was attempted but stopped before opening a browser because Playwright is absent; the built-in browser access host is also unavailable. To enable and run it locally with your installed Chrome:
+
+```powershell
+npm install --no-save --package-lock=false playwright
+& $php artisan store:smoke-fixture --env=demo --no-interaction
+node tests/Support/storefront-smoke.mjs
+```
+
+Manual phone acceptance: open the demo collection, choose Black and an available size, inspect the size guide, add one jacket, apply SMOKE10, then review a fictitious COD order. Confirm the crossed-out XL cannot be added. Review the new search title in admin, and check that saving a homepage draft does not change the live title.
+
+**Resume:** item 21, redirects manager. No credential or external approval is needed for this next local slice. The smallest environment check is `& $php artisan migrate:status --no-interaction`; continue from the current working tree rather than reinitializing fixtures. The 80-item roadmap is not complete.
+
+
 ## Price all sizes of a jacket
 
 Open **Admin > Products > Classic Biker Jacket > Edit > Manage prices**. Saved variants are grouped by color and show size, SKU and effective PKR/USD prices, labelled **product price** (inherited), **variant override**, or **Not set**. Save newly added sizes first. Opening/canceling preserves pending product edits. If you have pending edits in the relevant price fields, save those first; other unsaved edits can remain pending.

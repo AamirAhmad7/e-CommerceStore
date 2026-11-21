@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Category extends Model
 {
     protected $fillable = [
-        'name',
+        'name', 'seo_title', 'seo_description',
         'slug',
         'description',
         'is_active',
@@ -21,7 +21,7 @@ class Category extends Model
         ];
     }
 
-        public function products(): HasMany
+    public function products(): HasMany
     {
         return $this->hasMany(Product::class);
     }

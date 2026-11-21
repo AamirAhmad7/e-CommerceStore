@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Services\Pricing;
 use App\Support\ProductPhoto;
 use App\Support\StorefrontCampaigns;
+use App\Support\StorefrontSeo;
 use App\Support\StoreSettings;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -39,6 +40,9 @@ class HomeController extends Controller
         $request->session()->put('currency', $currency);
         $ids = collect($content['featured'] ?? [])->pluck('collection_id')->filter()->unique()->values()->all();
         $collections = Collection::where('is_published', true)->whereIn('id', $ids)->whereHas('eligibleItems')->with(['media', 'eligibleItems' => fn ($q) => $q->limit(4)->with(StorefrontCampaigns::cardRelations())])->get()->keyBy('id');
+        if (! $preview) {
+            $request->attributes->set('store_navigation_collections', $collections);
+        }
         $sections = collect($ids)->map(function ($id) use ($collections, $currency): ?array {
             $collection = $collections->get($id);
             if (! $collection) {
@@ -63,12 +67,17 @@ class HomeController extends Controller
                 ->latest('id')->limit(4)->get()->map(fn ($product) => StorefrontCampaigns::card($product, $currency));
             $hero ??= $fallbackCards->first(fn ($card) => $card['photo'])['photo'] ?? null;
         }
-        $primary = ($content['primary_target'] ?? 'shop') === 'collection' ? Collection::whereKey($content['primary_collection_id'] ?? null)->where('is_published', true)->whereHas('eligibleItems')->first() : null;
+        $primary = ($content['primary_target'] ?? 'shop') === 'collection' ? ($collections->get($content['primary_collection_id'] ?? null) ?? Collection::whereKey($content['primary_collection_id'] ?? null)->where('is_published', true)->whereHas('eligibleItems')->first()) : null;
         $primaryUrl = $primary ? StorefrontCampaigns::url('collections.show', ['collection' => $primary->slug]) : StorefrontCampaigns::url('shop');
         $primaryLabel = $primary ? 'Shop '.$primary->title : 'Shop all products';
         $canonical = StorefrontCampaigns::url('home');
-        $metaDescription = Str::limit(Str::squish(strip_tags($content['supporting_text'] ?? 'Explore '.$brand.' and shop our latest collections.')), 155, '');
+        $metaDescription = Str::limit(Str::squish(strip_tags($content['seo_description'] ?? $content['supporting_text'] ?? 'Explore '.$brand.' and shop our latest collections.')), 155, '');
 
-        return response()->view('home', compact('preview', 'content', 'headline', 'brand', 'sections', 'hero', 'primaryUrl', 'primaryLabel', 'canonical', 'metaDescription', 'fallbackCards'));
+        if (filled($content['seo_description'] ?? null)) {
+            $metaDescription = StorefrontSeo::description($content['seo_description']);
+        }
+        $seoTitle = ($content['seo_title'] ?? null) ?: $headline.' | '.$brand;
+
+        return response()->view('home', compact('seoTitle', 'preview', 'content', 'headline', 'brand', 'sections', 'hero', 'primaryUrl', 'primaryLabel', 'canonical', 'metaDescription', 'fallbackCards'));
     }
 }

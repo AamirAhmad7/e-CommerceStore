@@ -53,7 +53,9 @@ class ProductWhatsappTest extends TestCase
     {
         StoreSettings::setWhatsappNumber('+923001234567');
         $product = $this->product();
+        $product->update(['pkr_price_minor' => 1000000]);
         $black = $product->colors->firstWhere('name', 'Black');
+        $black->variants->first()->forceFill(['on_hand' => 2, 'reserved' => 0])->save();
         $response = $this->get(route('products.show', [$product->slug, 'color' => $black->id, 'size' => 'M', 'utm_source' => 'ad']))->assertOk()->assertSee('Ask on WhatsApp');
         $link = $response->viewData('selectedVariant')['whatsapp_url'];
         $this->assertStringStartsWith('https://wa.me/923001234567?text=', $link);

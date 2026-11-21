@@ -1,9 +1,9 @@
 @extends('layouts.store')
-@section('title', ($preview ? 'Preview: ' : '').$product->name.' | '.$brand)
+@section('title', ($preview ? 'Preview: ' : '').$seoTitle)
 @section('meta')
 @if($preview)<meta name="robots" content="noindex, nofollow, noarchive">@endif
-<meta property="og:type" content="product"><meta property="og:title" content="{{ $product->name }} | {{ $brand }}"><meta property="og:description" content="{{ $metaDescription }}"><meta property="og:url" content="{{ $canonical }}">
-@if($socialPhoto)<meta property="og:image" content="{{ $socialPhoto['src'] }}"><meta property="og:image:alt" content="{{ $socialPhoto['alt'] }}">@endif
+<meta property="og:type" content="product"><meta property="og:title" content="{{ $seoTitle }}"><meta property="og:description" content="{{ $metaDescription }}"><meta property="og:url" content="{{ $canonical }}">
+@if($socialPhoto)<meta property="og:image" content="{{ $socialPhoto['src'] }}"><meta property="og:image:alt" content="{{ $socialPhoto['alt'] }}"><meta property="og:image:width" content="{{ $socialPhoto['width'] }}"><meta property="og:image:height" content="{{ $socialPhoto['height'] }}">@endif
 @endsection
 @section('content')
     @if($preview)
