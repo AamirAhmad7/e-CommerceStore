@@ -30,6 +30,9 @@ final class Fulfillment
             if ($target === 'shipped' && $order->shipment && $order->shipment->stage !== 'with_courier') {
                 throw ValidationException::withMessages(['status' => 'Use Dispatch handover to assign courier and tracking before shipping.']);
             }
+            if ($target === 'shipped' && $order->requests()->where('type', 'cancellation')->where('status', 'pending')->exists()) {
+                throw ValidationException::withMessages(['status' => 'Review the pending cancellation request before shipping.']);
+            }
             if ($target === 'delivered' && $order->shipment && ! in_array($order->shipment->stage, ['with_courier', 'issue'], true)) {
                 throw ValidationException::withMessages(['status' => 'A returning parcel cannot be marked delivered. Receive it at the store.']);
             }

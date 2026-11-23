@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\Category;
 use App\Models\Collection;
 use App\Models\Product;
+use App\Support\StorefrontAnalytics;
+use App\Support\StoreSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -23,6 +25,7 @@ class CatalogDiscoveryTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
+        StorefrontAnalytics::available();
     }
 
     private function jacket(string $slug = 'discovery-jacket'): Product
@@ -50,7 +53,7 @@ class CatalogDiscoveryTest extends TestCase
         $this->assertNull($card['photo']);
         $this->assertStringContainsString('size=M', $card['url']);
         $this->assertStringContainsString('color='.$card['color']->id, $card['url']);
-        $this->assertSame('PKR 12000.00', $card['price']);
+        $this->assertSame('PKR 12,000', $card['price']);
         $this->get('/shop?color[]=Black&color[]=Brown&size[]=M&size[]=L&in_stock=1')->assertViewHas('products', fn ($p) => $p->total() === 1);
         $this->get('/shop?color[]=Brown&max=11000')->assertViewHas('products', fn ($p) => $p->total() === 0);
         $this->get('/shop?color[]=Brown&currency=USD&max=140')->assertViewHas('products', fn ($p) => $p->total() === 0);
@@ -59,7 +62,7 @@ class CatalogDiscoveryTest extends TestCase
         $variant->forceFill(['reserved' => 3])->save();
         $this->get('/shop?color[]=Brown&in_stock=1')->assertViewHas('products', fn ($p) => $p->total() === 0);
         $variant->forceFill(['reserved' => 0, 'pkr_price_minor' => 0])->save();
-        $this->get('/shop?color[]=Brown&currency=USD&in_stock=1')->assertViewHas('products', fn ($p) => $p->total() === 0);
+        $this->get('/shop?color[]=Brown&currency=USD&in_stock=1')->assertViewHas('products', fn ($p) => $p->total() === 1);
         $variant->forceFill(['pkr_price_minor' => 1200000, 'usd_price_minor' => 0])->save();
         $this->get('/shop?color[]=Brown&currency=USD&in_stock=1')->assertViewHas('products', fn ($p) => $p->total() === 0);
     }
@@ -96,6 +99,7 @@ class CatalogDiscoveryTest extends TestCase
     public function test_page_queries_are_bounded_and_links_preserve_choices(): void
     {
         $this->jacket();
+        StoreSettings::brandName();
         DB::enableQueryLog();
         DB::flushQueryLog();
         $this->get('/shop?color[]=Brown&size[]=M&in_stock=1')->assertOk();
@@ -114,6 +118,6 @@ class CatalogDiscoveryTest extends TestCase
         $this->assertSame(13, $page->viewData('products')->total());
         $this->assertStringContainsString('size%5B0%5D=M', $page->viewData('products')->nextPageUrl());
         $this->get('/shop?color[]=Brown&size[]=M&in_stock=1&page=2')->assertViewHas('cards', fn ($cards) => $cards->count() === 1);
-        fwrite(STDOUT,"\nDiscovery queries: 1 card=$small, 12 cards=$full\n");
+        fwrite(STDOUT, "\nDiscovery queries: 1 card=$small, 12 cards=$full\n");
     }
 }

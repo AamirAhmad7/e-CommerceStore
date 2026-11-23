@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\OrderEvent;
 use App\Services\OrderCare;
 use App\Services\OrderMessages;
+use App\Support\PakistanAddress;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,6 +24,26 @@ class OrderCareController extends Controller
 
     public function lookup(Request $request): RedirectResponse
     {
+        if ($request->filled('contact')) {
+            $request->validate(['contact' => 'required|string|max:254']);
+            $contact = trim($request->string('contact')->toString());
+            $request->merge(filter_var($contact, FILTER_VALIDATE_EMAIL) ? ['email' => $contact] : ['phone' => $contact]);
+        }
+        if ($request->filled('phone')) {
+            $data = $request->validate(['number' => 'required|string|max:100', 'phone' => 'required|string|max:25']);
+            $phone = PakistanAddress::phone($data['phone']);
+            $key = 'order-phone-lookup:'.hash('sha256', strtolower(trim($data['number'])));
+            if ($phone && ! RateLimiter::tooManyAttempts($key, 5)) {
+                RateLimiter::hit($key, 600);
+                $order = Order::where('number', trim($data['number']))->first();
+                $stored = $order ? PakistanAddress::phone($order->customer['phone'] ?? null) : null;
+                if ($stored && hash_equals($stored, $phone)) {
+                    return redirect()->route('orders.show', $order->access_token);
+                }
+            }
+
+            return back()->withErrors(['contact' => 'We could not find a matching order. Check your reference and checkout phone, or contact the store.'])->withInput($request->only('number', 'contact'));
+        }
         $data = $request->validate(['number' => 'required|string|max:100', 'email' => 'required|email|max:254']);
         $email = strtolower(trim($data['email']));
         $key = 'order-lookup:'.hash('sha256', $email);

@@ -8,14 +8,23 @@ if (root) {
 
     function renderSize() {
         const variant = color?.variants.find(item => item.size === selectedSize && item.can_buy);
+        const chartSize = (variant?.size ?? '').trim().toUpperCase().replace(/^2XL$/, 'XXL').replace(/^3XL$/, 'XXXL').replace(/^4XL$/, 'XXXXL').replace(/^2XS$/, 'XXS').replace(/^3XS$/, 'XXXS');
+        document.querySelectorAll('[data-guide-size]').forEach(cell => {
+            if (cell.dataset.guideSize.toUpperCase() === chartSize) cell.setAttribute('aria-current', 'true');
+            else cell.removeAttribute('aria-current');
+        });
         if (!variant) selectedSize = null;
         const whatsapp = document.querySelector('#ask-whatsapp');
         if (whatsapp) whatsapp.href = variant?.whatsapp_url ?? color?.whatsapp_url ?? whatsapp.href;
+        const floatingWhatsapp = document.querySelector('.whatsapp-float');
+        if (floatingWhatsapp && whatsapp) floatingWhatsapp.href = whatsapp.href;
         document.querySelector('#selected-price').textContent = variant?.price_label ?? color?.price_label ?? 'Currently unavailable';
         document.querySelector('#selected-stock').textContent = variant?.availability ?? (data.preview && !color?.variants.length ? 'No active sizes. Activate a size in the product form.' : (color?.availability ?? 'No sizes are currently available to order. Browse other products or contact the store.'));
         const variantInput = document.querySelector('#cart-variant');
         if (variantInput) {
             variantInput.value = variant?.id ?? '';
+            const expectedPrice = document.querySelector('#add-to-cart input[name="expected_price"]');
+            if (expectedPrice) expectedPrice.value = variant?.price ?? '';
             const quantity = document.querySelector('#add-to-cart input[name="quantity"]');
             quantity.disabled = !variant?.can_buy;
             quantity.max = Math.min(100, variant?.available ?? 0);
@@ -84,7 +93,7 @@ if (root) {
                 link.type = 'button';
                 link.disabled = true;
                 link.setAttribute('aria-label', variant.label + ' - ' + variant.disabled_label);
-                const label = document.createElement('s');
+                const label = document.createElement('span');
                 label.textContent = variant.label;
                 link.append(label, ' ' + variant.disabled_label);
             }
@@ -134,7 +143,7 @@ if (root) {
         if (photo.srcset) image.setAttribute('srcset', photo.srcset);
         else image.removeAttribute('srcset');
         image.src = photo.src;
-        image.alt = photo.alt;
+        image.alt = photo.alt || color.name + ' jacket';
         image.width = photo.width;
         image.height = photo.height;
         gallery.querySelector('.large-photo').href = photo.original;
@@ -177,3 +186,70 @@ document.querySelectorAll('[data-measurements]').forEach(guide => {
         });
     });
 });
+
+if (document.querySelector('#color-gallery') && typeof HTMLDialogElement !== 'undefined' && 'showModal' in HTMLDialogElement.prototype) {
+    const lightbox = document.createElement('dialog');
+    lightbox.className = 'photo-lightbox';
+    lightbox.setAttribute('aria-label', 'Larger product photo');
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'button-secondary';
+    close.textContent = 'Close photo';
+    const photo = document.createElement('img');
+    const controls = document.createElement('div');
+    controls.className = 'lightbox-controls';
+    const previous = document.createElement('button'); previous.type = 'button'; previous.className = 'button-secondary'; previous.textContent = 'Previous photo';
+    const next = document.createElement('button'); next.type = 'button'; next.className = 'button-secondary'; next.textContent = 'Next photo';
+    const zoom = document.createElement('button'); zoom.type = 'button'; zoom.className = 'button-secondary'; zoom.textContent = 'Zoom in'; zoom.setAttribute('aria-pressed', 'false');
+    controls.append(previous, next, zoom, close);
+    lightbox.append(controls, photo);
+    const resetZoom = () => { lightbox.classList.remove('is-zoomed'); zoom.textContent = 'Zoom in'; zoom.setAttribute('aria-pressed', 'false'); };
+    const move = direction => {
+        const links = [...document.querySelectorAll('#color-gallery [data-photo]')];
+        if (links.length < 2) return;
+        const current = links.findIndex(link => link.href === photo.src);
+        const target = links[(current + direction + links.length) % links.length];
+        target.click(); photo.src = target.href; photo.alt = document.querySelector('#color-gallery .main-photo')?.alt || 'Product detail'; resetZoom();
+    };
+    previous.addEventListener('click', () => move(-1)); next.addEventListener('click', () => move(1));
+    zoom.addEventListener('click', () => { const enabled = lightbox.classList.toggle('is-zoomed'); zoom.textContent = enabled ? 'Zoom out' : 'Zoom in'; zoom.setAttribute('aria-pressed', String(enabled)); });
+    let touchStart;
+    photo.addEventListener('touchstart', event => { touchStart = [event.touches[0].clientX, event.touches[0].clientY]; }, {passive:true});
+    photo.addEventListener('touchend', event => { if (!touchStart || lightbox.classList.contains('is-zoomed')) return; const dx = event.changedTouches[0].clientX - touchStart[0]; const dy = event.changedTouches[0].clientY - touchStart[1]; if (Math.abs(dx) > 60 && Math.abs(dy) < 50) move(dx < 0 ? 1 : -1); touchStart = null; }, {passive:true});
+    lightbox.addEventListener('keydown', event => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); move(event.key === 'ArrowRight' ? 1 : -1); } });
+    document.body.append(lightbox);
+    let opener;
+    document.addEventListener('click', event => {
+        const link = event.target.closest('#color-gallery .large-photo');
+        if (!link || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        opener = link;
+        photo.src = link.href;
+        photo.alt = link.querySelector('img')?.alt ?? 'Product detail';
+        resetZoom();
+        previous.disabled = next.disabled = document.querySelectorAll('#color-gallery [data-photo]').length < 2;
+        lightbox.showModal();
+    });
+    close.addEventListener('click', () => lightbox.close());
+    lightbox.addEventListener('close', () => opener?.focus());
+}
+
+const sizeGuide = document.querySelector('details.size-guide');
+if (sizeGuide && typeof HTMLDialogElement !== 'undefined' && 'showModal' in HTMLDialogElement.prototype) {
+    const guideDialog = document.createElement('dialog');
+    guideDialog.className = 'size-guide-modal';
+    guideDialog.setAttribute('aria-label', 'Size and fit guide');
+    const closeGuide = document.createElement('button');
+    closeGuide.type = 'button';
+    closeGuide.className = 'button-secondary';
+    closeGuide.textContent = 'Close size guide';
+    guideDialog.append(closeGuide, sizeGuide.querySelector('.size-guide-content'));
+    document.body.append(guideDialog);
+    const guideOpener = sizeGuide.querySelector('summary');
+    guideOpener.addEventListener('click', event => {
+        event.preventDefault();
+        guideDialog.showModal();
+    });
+    closeGuide.addEventListener('click', () => guideDialog.close());
+    guideDialog.addEventListener('close', () => guideOpener.focus());
+}

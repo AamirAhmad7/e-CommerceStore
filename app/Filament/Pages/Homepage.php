@@ -23,6 +23,8 @@ use Illuminate\Validation\Rule;
 
 class Homepage extends Page
 {
+    protected static string|\UnitEnum|null $navigationGroup = 'Storefront';
+
     protected string $view = 'filament.pages.homepage';
 
     protected static ?string $navigationLabel = 'Homepage';

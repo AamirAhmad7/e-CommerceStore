@@ -22,7 +22,7 @@ class ProductColor extends Model implements HasMedia
     }
 
     protected $fillable = [
-        'name',
+        'name', 'model_height_cm', 'model_size_worn',
         'swatch_hex',
         'sort_order',
     ];

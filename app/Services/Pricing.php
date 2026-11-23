@@ -33,7 +33,13 @@ final class Pricing
 
     public static function format(?int $minor, string $currency = 'PKR'): string
     {
-        return $minor === null ? 'Price not configured' : $currency.' '.self::decimal($minor, $currency);
+        if ($minor === null) {
+            return 'Price not configured';
+        }
+
+        [$whole, $fraction] = explode('.', self::decimal($minor, $currency));
+
+        return $currency.' '.preg_replace('/\B(?=(\d{3})+(?!\d))/', ',', $whole).($fraction === '00' ? '' : '.'.$fraction);
     }
 
     public static function resolve(ProductVariant $variant, string $currency, ?Product $product = null): ?int

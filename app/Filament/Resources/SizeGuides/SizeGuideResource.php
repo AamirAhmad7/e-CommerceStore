@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Gate;
 
 class SizeGuideResource extends Resource
 {
+    protected static string|\UnitEnum|null $navigationGroup = 'Catalog';
+
     protected static ?string $model = SizeGuide::class;
 
     protected static ?string $recordTitleAttribute = 'name';

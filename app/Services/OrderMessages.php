@@ -15,7 +15,7 @@ final class OrderMessages
     {
         $event = $order->events()->firstOrCreate(['event_key' => $key], [
             'subject' => $subject.' - '.$order->number, 'message' => $message, 'customer_visible' => $visible,
-            'recipient' => $order->customer['email'],
+            'recipient' => $order->customer['email'] ?? '',
             'body' => view('mail.order-event', ['order' => $order->loadMissing('lines'), 'messageText' => $message, 'brand' => StoreSettings::brandName(), 'contact' => CommerceSettings::get()['contact_email']])->render(),
         ]);
         if ($event->wasRecentlyCreated) {
@@ -27,6 +27,9 @@ final class OrderMessages
 
     public static function queue(OrderEvent $event): void
     {
+        if (! filter_var($event->recipient, FILTER_VALIDATE_EMAIL)) {
+            return;
+        }
         OrderNotification::dispatch($event->order_id, $event->id)->onConnection('database')->onQueue('default')->afterCommit();
     }
 

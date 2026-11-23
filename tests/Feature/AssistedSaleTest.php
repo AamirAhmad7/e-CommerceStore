@@ -93,7 +93,7 @@ class AssistedSaleTest extends TestCase
         $this->assertSame('draft', $sale->status);
         $this->assertSame(0, Order::count());
         $this->assertSame(0, $this->black->fresh()->reserved);
-        Queue::assertNothingPushed();
+        Queue::assertNotPushed(OrderNotification::class);
         $page->callAction(TestAction::make('share')->table($sale), AssistedSales::formData($sale))->assertHasNoActionErrors();
         $link = $sale->links()->sole();
         $page->mountAction(TestAction::make('copy')->table($sale))->assertSet('mountedActions.0.name', 'copy');
@@ -136,7 +136,7 @@ class AssistedSaleTest extends TestCase
         $this->product->update(['pkr_price_minor' => 130000]);
         $this->post(route('checkout.store'), $this->payload($key))->assertRedirect($link->url())->assertSessionHasErrors('checkout');
         $this->assertSame(0, Order::count());
-        $this->get($link->url())->assertSee('PKR 2400.00')->assertSee('PKR 2600.00');
+        $this->get($link->url())->assertSee('PKR 2,400')->assertSee('PKR 2,600');
         $key = $this->review($link);
         $this->post(route('checkout.store'), $this->payload($key))->assertSessionHasErrors('accept_revised_total')->assertRedirect($link->url());
         $this->assertSame(0, $this->black->fresh()->reserved);
@@ -183,7 +183,7 @@ class AssistedSaleTest extends TestCase
         $this->assertSame(0, Order::count());
         $this->assertSame(0, $this->black->fresh()->reserved);
         $this->assertSame(0, $this->brown->fresh()->reserved);
-        Queue::assertNothingPushed();
+        Queue::assertNotPushed(OrderNotification::class);
         config(['app.env' => 'production']);
         $this->get('/admin/assisted-sales')->assertForbidden();
     }

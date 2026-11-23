@@ -43,6 +43,16 @@ class ProductUsabilityTest extends TestCase
         $this->product = Product::create(['name' => 'Usability jacket', 'slug' => 'usability-jacket', 'category_id' => $category->id, 'is_active' => true, 'pkr_price_minor' => 10000]);
     }
 
+    public function test_unavailable_color_is_disabled_without_a_selection_link(): void
+    {
+        $this->withoutVite();
+        $this->color('Black', ['M']);
+        $brown = $this->color('Brown', ['M'], 0);
+        $response = $this->get('/products/usability-jacket')->assertOk();
+        $this->assertMatchesRegularExpression('/<button[^>]*class="color-option color-unavailable"[^>]*disabled/', $response->getContent());
+        $response->assertSee('<s>Brown</s>', false)->assertDontSee('data-color="'.$brown->id.'"', false);
+    }
+
     private function color(string $name, array $sizes, int $stock = 3, int $order = 0): ProductColor
     {
         $color = $this->product->colors()->create(['name' => $name, 'sort_order' => $order]);
@@ -188,7 +198,7 @@ class ProductUsabilityTest extends TestCase
         $this->actingAs(User::factory()->create());
         $color = $this->color('Black', ['S', 'M']);
         $this->photo($color, 'gallery', 'Saved photo');
-        $page = Livewire::test(EditProduct::class, ['record' => $this->product->id])->assertSee('Storefront readiness');
+        $page = Livewire::test(EditProduct::class, ['record' => $this->product->id])->assertSee('At a glance');
         $repeater = $page->instance()->form->getComponentByStatePath('colors');
         $this->assertTrue($repeater->isCollapsed(array_values($repeater->getChildSchemas())[0]));
         $page->callFormComponentAction('colors.record-'.$color->id.'.variants', 'add');

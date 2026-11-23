@@ -2,14 +2,16 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Dashboard;
+use App\Support\StoreSettings;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Enums\Width;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -26,9 +28,16 @@ class AdminPanelProvider extends PanelProvider
         return $panel
             ->default()
             ->id('admin')
-->brandName(fn (): string => \App\Support\StoreSettings::brandName())
+            ->brandName(fn (): string => StoreSettings::brandName())
             ->path('admin')
             ->login()
+            ->maxContentWidth(Width::Full)
+            ->sidebarCollapsibleOnDesktop()
+            ->renderHook('panels::topbar.end', fn () => view('filament.price-view'))
+            ->renderHook('panels::topbar.end', fn () => view('filament.order-alerts'))
+            ->unsavedChangesAlerts()
+            ->navigationGroups(['Analytics', 'Catalog', 'Orders & customers', 'Purchasing', 'Marketing', 'Storefront', 'Settings'])
+            ->renderHook('panels::head.end', fn () => view('filament.admin-assets'))
             ->colors([
                 'primary' => Color::Amber,
             ])

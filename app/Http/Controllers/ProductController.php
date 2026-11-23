@@ -4,14 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Filament\Resources\Products\ProductResource;
 use App\Models\Product;
-use App\Services\Inventory;
 use App\Services\Pricing;
 use App\Support\ProductPhoto;
 use App\Support\ProductPresentation;
+use App\Support\StorefrontCampaigns;
 use App\Support\StorefrontSeo;
 use App\Support\StoreSettings;
 use Filament\Facades\Filament;
 use Filament\Models\Contracts\FilamentUser;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Str;
@@ -24,6 +25,20 @@ class ProductController extends Controller
         abort_unless($product->is_active && $product->category?->is_active, 404);
 
         return $this->render($request, $product);
+    }
+
+    public function choices(Request $request, Product $product): JsonResponse
+    {
+        $product->load('category');
+        abort_unless($product->is_active && $product->category?->is_active, 404);
+        $data = $request->validate(['currency' => 'nullable|in:PKR,USD']);
+        $currency = Pricing::currency($data['currency'] ?? $request->session()->get('currency'));
+        $product->load(['colors.variants' => fn ($query) => $query->where('is_active', true)->orderBy('id')]);
+
+        return response()->json(['id' => $product->id, 'name' => $product->name, 'currency' => $currency, 'colors' => $product->colors->map(fn ($color): array => [
+            'id' => (string) $color->id, 'name' => $color->name,
+            'variants' => ProductPresentation::variants($color, $product, $currency),
+        ])->values()]);
     }
 
     public function preview(Request $request, Product $product): Response
@@ -53,31 +68,18 @@ class ProductController extends Controller
         $measurementGuide = $product->applicableSizeGuide();
         $colors = $product->colors->filter(fn ($color) => $preview || $color->variants->isNotEmpty())->map(function ($color) use ($baseUrl, $currency, $product, $preview): array {
             $photos = $color->getMedia('gallery')->map(ProductPhoto::data(...))->values()->all();
-            $variants = $color->variants->sort(fn ($a, $b) => (ProductPresentation::sizeKey($a->size) <=> ProductPresentation::sizeKey($b->size)) ?: ($a->id <=> $b->id))->map(function ($variant) use ($currency, $product, $preview): array {
-                $price = Pricing::resolve($variant, $currency, $product);
-                $checkoutPrice = Pricing::resolve($variant, 'PKR', $product);
-                $available = Inventory::available($variant);
-                $problem = $checkoutPrice <= 0 ? 'PKR checkout price is not configured.' : ($price <= 0 ? $currency.' display price is not configured.' : ($variant->on_hand === null ? 'Stock is not configured.' : null));
-
-                return ['id' => $variant->id, 'size' => $variant->size, 'label' => ProductPresentation::sizeLabel($variant->size), 'sku' => $variant->sku, 'price' => $price, 'price_label' => $price > 0 ? Pricing::format($price, $currency) : ($preview ? 'Display price is not configured.' : 'Price unavailable'), 'available' => $available, 'can_buy' => Inventory::purchasable($variant, $currency, $product), 'availability' => $problem ? ($preview ? $problem : ($price <= 0 || $checkoutPrice <= 0 ? 'Currently unavailable to order. Choose another size or ask the store about this item.' : 'Availability has not been confirmed. Choose another size or ask the store.')) : ($available > 0 ? 'In stock: '.$available.' available.' : 'Sold out'), 'disabled_label' => $available === 0 ? 'Sold out' : 'Currently unavailable', 'stock_configured' => $variant->on_hand !== null, 'can_notify' => ! $preview && $variant->is_active && $checkoutPrice > 0 && $price > 0 && $variant->on_hand !== null && $available === 0];
-            })->values()->all();
-            $labels = array_count_values(array_column($variants, 'label'));
-            foreach ($variants as &$variant) {
-                if ($labels[$variant['label']] > 1) {
-                    $variant['label'] .= ' ('.$variant['sku'].')';
-                }
-            }
-            unset($variant);
+            $variants = ProductPresentation::variants($color, $product, $currency, $preview);
 
             return [
                 'id' => (string) $color->id,
                 'name' => $color->name,
-                'swatch' => preg_match('/^#[a-f0-9]{6}$/i', $color->swatch_hex ?? '') ? $color->swatch_hex : null,
+                'swatch' => preg_match('/^#[a-f0-9]{6}$/i', $color->swatch_hex ?? '') ? $color->swatch_hex : (['black' => '#242424', 'brown' => '#795548', 'white' => '#f5f3ed', 'navy' => '#24354c', 'green' => '#35533d'][strtolower($color->name)] ?? '#a6ada5'),
                 'url' => $baseUrl.'?'.http_build_query(['color' => $color->id, 'currency' => $currency]),
                 'photos' => $photos,
+                'model_caption' => $color->model_height_cm && filled($color->model_size_worn) && count($photos) ? 'Model is '.$color->model_height_cm.' cm and wears '.$color->model_size_worn : null,
                 'variants' => $variants,
                 'price_label' => ProductPresentation::price($variants, $preview),
-                'availability' => ! $variants ? 'No sizes are currently available to order. Browse other products or contact the store.' : (collect($variants)->contains('can_buy', true) ? 'Choose a size.' : (collect($variants)->every(fn ($variant) => $variant['available'] === 0) ? 'All sizes in this color are sold out. Choose another color or ask the store.' : 'No sizes in this color can currently be ordered. Choose another color or ask the store.')),
+                'availability' => ! $variants ? 'No sizes are currently available to order. Browse other products or contact the store.' : (collect($variants)->contains('can_buy', true) ? '' : (collect($variants)->every(fn ($variant) => $variant['available'] === 0) ? 'All sizes in this color are sold out. Choose another color or ask the store.' : 'No sizes in this color can currently be ordered. Choose another color or ask the store.')),
                 'status' => ! $variants ? 'No active sizes (preview only)' : (collect($variants)->every(fn ($v) => $v['stock_configured'] && $v['available'] === 0) ? 'Sold out' : ''),
             ];
         })->values();
@@ -125,8 +127,11 @@ class ProductController extends Controller
         }
         $seoTitle = $product->seo_title ?: $product->name.' | '.$brand;
         $structuredData = $preview ? null : StorefrontSeo::product($product, $selected, $selectedVariant, $currency, $metaDescription);
+        $viewPrice = $selectedVariant['price'] ?? collect($selected['variants'] ?? [])->where('price', '>', 0)->min('price');
+        $storefrontEvents = ! $preview && $viewPrice ? [['event' => 'view_item', 'currency' => 'PKR', 'value' => $viewPrice / 100, 'items' => [['item_id' => (string) ($selectedVariant['id'] ?? $product->id), 'item_name' => $product->name, 'price' => $viewPrice / 100, 'quantity' => 1]]]] : [];
         $socialPhoto = $selected['photos'][0] ?? null;
+        $related = $preview ? collect() : Product::visible()->whereKeyNot($product->id)->orderByRaw('CASE WHEN category_id = ? THEN 0 ELSE 1 END', [$product->category_id])->with(['colors.variants' => fn ($query) => $query->where('is_active', true), 'colors.media' => fn ($query) => $query->where('collection_name', 'gallery')->orderBy('order_column')->limit(1)])->latest()->limit(4)->get()->map(fn (Product $item): array => StorefrontCampaigns::card($item, $currency));
 
-        return response()->view('products.show', compact('seoTitle', 'structuredData', 'product', 'preview', 'colors', 'selected', 'selectedVariant', 'shared', 'guides', 'measurementGuide', 'colorUnavailable', 'sizeUnavailable', 'brand', 'canonical', 'metaDescription', 'socialPhoto', 'currency', 'whatsappUrl'));
+        return response()->view('products.show', compact('storefrontEvents', 'related', 'seoTitle', 'structuredData', 'product', 'preview', 'colors', 'selected', 'selectedVariant', 'shared', 'guides', 'measurementGuide', 'colorUnavailable', 'sizeUnavailable', 'brand', 'canonical', 'metaDescription', 'socialPhoto', 'currency', 'whatsappUrl'));
     }
 }

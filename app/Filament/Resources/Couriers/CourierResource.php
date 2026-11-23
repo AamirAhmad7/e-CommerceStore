@@ -21,7 +21,7 @@ class CourierResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Orders';
+    protected static string|\UnitEnum|null $navigationGroup = 'Orders & customers';
 
     public static function canViewAny(): bool
     {

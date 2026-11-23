@@ -93,7 +93,7 @@ class PromotionTest extends TestCase
         $this->assertSame(0, $p->fresh()->uses);
         Filament::setCurrentPanel(Filament::getPanel('admin'));
         $page = Livewire::test(ManagePromotions::class)->mountAction(TestAction::make('edit')->table($p))->assertHasNoErrors()->assertActionMounted()->assertSet('mountedActions.0.data.percentage', '10.00');
-        $page->set('mountedActions.0.data.preview_items', [['variant_id' => $variant->id, 'quantity' => 3], ['variant_id' => $other->id, 'quantity' => 2]])->callAction(TestAction::make('previewBasket')->schemaComponent())->assertHasNoActionErrors()->assertSet('mountedActions.0.data.basket_preview', fn ($value) => is_string($value) && str_contains($value, 'PKR 2000.00'));
+        $page->set('mountedActions.0.data.preview_items', [['variant_id' => $variant->id, 'quantity' => 3], ['variant_id' => $other->id, 'quantity' => 2]])->callAction(TestAction::make('previewBasket')->schemaComponent())->assertHasNoActionErrors()->assertSet('mountedActions.0.data.basket_preview', fn ($value) => is_string($value) && str_contains($value, 'PKR 2,000'));
         $this->assertSame(0, Order::count());
         $this->assertSame(0, $p->fresh()->uses);
         $allocated = Promotions::allocate(7, [$variant->id => 10, $other->id => 10]);
@@ -145,7 +145,7 @@ class PromotionTest extends TestCase
         config(['app.env' => 'local']);
         $this->actingAs(User::factory()->create());
         Filament::setCurrentPanel(Filament::getPanel('admin'));
-        Livewire::test(PromotionResults::class, ['record' => $code->id])->assertSee($order->number)->assertSee('PKR 100.00');
+        Livewire::test(PromotionResults::class, ['record' => $code->id])->assertSee($order->number)->assertSee('PKR 100');
         $this->get(route('promotions.export', $code))->assertOk()->assertDownload('promotion-orders.csv');
     }
 

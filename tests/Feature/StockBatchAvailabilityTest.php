@@ -119,13 +119,13 @@ class StockBatchAvailabilityTest extends TestCase
         $variants = $product->colors->first()->variants->sortBy('id')->values();
         app(Inventory::class)->adjust($variants[1]->id, 5, 'Opening', auth()->id());
         $url = route('products.show', $product->slug);
-        $response = $this->get($url)->assertOk()->assertSee('Sold out');
+        $response = $this->get($url)->assertOk()->assertSee('Currently unavailable');
         $this->assertSame($variants[1]->id, $response->viewData('selectedVariant')['id']);
         $response = $this->get($url.'?size=S')->assertOk()->assertSee('That size is currently unavailable');
         $this->assertNull($response->viewData('selectedVariant'));
         $this->assertStringNotContainsString('data-size="S"', $response->getContent());
         $product->update(['pkr_price_minor' => null, 'usd_price_minor' => 1000]);
-        $this->get($url.'?currency=USD')->assertOk()->assertSee('Currently unavailable')->assertViewHas('selectedVariant', null);
+        $this->get($url.'?currency=USD')->assertOk()->assertViewHas('selectedVariant', fn ($v) => $v['id'] === $variants[1]->id);
         $this->withSession(['currency' => 'USD'])->post(route('cart.add'), ['product_id' => $product->id, 'variant_id' => $variants[1]->id, 'quantity' => 1])->assertSessionHasErrors('cart');
     }
 }

@@ -111,7 +111,7 @@ class AddProductSizesTest extends TestCase
         $this->assertNull(ProductVariant::where('sku', 'CBJ-BRN-M')->first()->pkr_price_minor);
         ProductVariant::where('sku', 'CBJ-BRN-M')->first()->forceFill(['on_hand' => 0])->save();
         $summaries = array_column(ProductPresentation::readiness($product->fresh()), 'text');
-        $this->assertContains('Brown · 4 sizes · 4 missing checkout prices · 1 out of stock · 3 stock not configured', $summaries);
+        $this->assertContains('Brown · 4 sizes · 0 available to order · 0 photos', $summaries);
         $black->variants()->create(['size' => 'Other', 'sku' => 'CBJ-BLK-42']);
         $page = Livewire::test(EditProduct::class, ['record' => $product->id]);
         $page->mountFormComponentAction($path, 'addSizes')->set('mountedActions.0.data.sizes', ['42']);

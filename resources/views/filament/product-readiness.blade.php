@@ -1,15 +1,23 @@
-<div>
-    <p>Guidance from saved data. Stock and price actions refresh this summary immediately. This does not change publication.</p>
-    @if(!$findings)<p>Save this product to check its storefront readiness.</p>
+<div class="sf-readiness">
+    <p class="sf-save-state" x-data x-text="window.jsMd5(JSON.stringify($wire.data).replace(/\\/g, '')) !== $wire.savedDataHash ? 'Pending changes - Save changes to apply product edits.' : 'No pending product changes.'" role="status"></p>
+    <p class="sf-save-help">Save changes applies your form edits. Price and stock dialogs save separately when confirmed.</p>
+    @if(!$findings)
+        <p>Save this product to enter stock and prices.</p>
     @else
-        <p>{{ $findings[0]['text'] }}</p>
-        <p><button type="button" wire:click="mountAction('manageStock')">Enter stock</button> ? <button type="button" wire:click="mountAction('managePrices')">Set PKR price</button></p>
-        @foreach($findings as $finding)
-            @if($finding['kind'] === 'Color summary')<p>{{ $finding['text'] }}. <a href="#product-colors">Open color/size rows below for PKR price and Inventory → Adjust stock.</a></p>@endif
-        @endforeach
-        <details><summary>{{ count($findings) - 1 }} catalog findings — configuration and normal stock states</summary>
-        <ul style="list-style:disc;padding-left:1.5rem">
-        @foreach(array_slice($findings,1) as $finding)<li><strong>{{ $finding['kind'] }}:</strong> {{ $finding['text'] }} @if(isset($finding['action']))<button type="button" wire:click="mountAction('{{ $finding['action'] }}', { variant: {{ $finding['variant'] }} })">{{ $finding['label'] }}</button>@endif</li>@endforeach
-        </ul></details>
+        <p class="sf-publication-status"><strong>{{ $findings[0]['text'] }}</strong></p>
+        <details class="sf-checklist">
+            <summary>Review setup ({{ collect($findings)->where('kind', 'Configuration')->count() }} setup issues)</summary>
+            @foreach(collect($findings)->where('kind', 'Configuration')->groupBy(fn ($finding) => $finding['action'] ?? 'publication') as $action => $issues)
+                <details>
+                    <summary>{{ $issues->count() }} {{ match($action) { 'managePrices' => 'sizes need a PKR price', 'manageStock' => 'sizes have never had stock entered', default => 'publication or size settings need attention' } }}</summary>
+                    <ul>@foreach($issues as $finding)<li>{{ $finding['text'] }}
+                        @if(isset($finding['action']))<x-filament::button size="sm" color="gray" type="button" wire:click="mountAction('{{ $finding['action'] }}', { variant: {{ $finding['variant'] }} })">{{ $finding['label'] }}</x-filament::button>@endif
+                    </li>@endforeach</ul>
+                </details>
+            @endforeach
+            @foreach(['Normal stock state' => 'Sold out / reserved sizes (not a setup error)', 'Optional improvement' => 'Optional photos and presentation'] as $kind => $heading)
+                @if(collect($findings)->contains('kind', $kind))<details><summary>{{ $heading }}</summary><ul>@foreach(collect($findings)->where('kind', $kind) as $finding)<li>{{ $finding['text'] }}</li>@endforeach</ul></details>@endif
+            @endforeach
+        </details>
     @endif
 </div>

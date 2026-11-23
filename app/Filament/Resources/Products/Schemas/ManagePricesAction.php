@@ -6,6 +6,7 @@ use App\Filament\Resources\Products\Pages\EditProduct;
 use App\Models\Product;
 use App\Services\Pricing;
 use App\Services\VariantPricing;
+use App\Support\ProductWorkspace;
 use Filament\Actions\Action;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Hidden;
@@ -34,9 +35,11 @@ final class ManagePricesAction
             ->fillForm(function (Product $record, array $arguments): array {
                 VariantPricing::authorize($record);
                 $product = $record->fresh(['colors.variants']);
+                $focused = $product->colors->flatMap->variants->firstWhere('id', $arguments['variant'] ?? null);
+                $focusedPrice = $focused ? Pricing::resolve($focused, 'PKR', $product) : null;
                 $baseline = ['product' => $product->only(['pkr_price_minor', 'usd_price_minor']), 'variants' => $product->colors->flatMap->variants->keyBy('id')->map->only(['pkr_price_minor', 'usd_price_minor'])->all()];
 
-                return ['baseline' => Crypt::encryptString(json_encode($baseline, JSON_THROW_ON_ERROR)), 'selection' => isset($arguments['variant']) ? $product->colors->mapWithKeys(fn ($color) => [$color->id => $color->variants->where('id', $arguments['variant'])->modelKeys()])->all() : [], 'currency' => 'PKR', 'mode' => 'missing', 'scope' => 'custom', 'preview' => 'Choose saved sizes and an amount, then click Preview prices.', 'token' => ''];
+                return ['baseline' => Crypt::encryptString(json_encode($baseline, JSON_THROW_ON_ERROR)), 'selection' => isset($arguments['variant']) ? $product->colors->mapWithKeys(fn ($color) => [$color->id => $color->variants->where('id', $arguments['variant'])->modelKeys()])->all() : [], 'currency' => 'PKR', 'mode' => $focusedPrice !== null && $focusedPrice <= 0 ? 'replace' : 'missing', 'scope' => 'custom', 'preview' => 'Choose saved sizes and an amount, then click Preview prices.', 'token' => ''];
             })
             ->schema(function (Product $record): array {
                 $colors = $record->fresh(['colors.variants'])->colors;
@@ -101,6 +104,7 @@ final class ManagePricesAction
                     }
                 }
                 $changed = count(array_filter($plan['rows'], fn ($row) => $row['change']));
+                ProductWorkspace::forget();
                 Notification::make()->success()->title('Updated '.$changed.' '.$plan['currency'].' prices; skipped '.(count($plan['rows']) - $changed).' existing or unchanged prices')->send();
             });
     }

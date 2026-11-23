@@ -123,11 +123,11 @@ class CommerceTest extends TestCase
     {
         $this->post('/cart', ['product_id' => $this->product->id, 'variant_id' => $this->variant->id, 'quantity' => 1, 'price' => 1])->assertRedirect(route('cart.show'));
         $this->post('/cart', ['product_id' => $this->product->id, 'variant_id' => $this->variant->id, 'quantity' => 1])->assertSessionHas('cart.'.$this->variant->id, 2);
-        $this->get('/cart')->assertOk()->assertSee('PKR 1234.56')->assertHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+        $this->get('/cart')->assertOk()->assertSee('PKR 1,234.56')->assertHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
         $this->patch('/cart/'.$this->variant->id, ['quantity' => 99])->assertSessionHasErrors('cart');
         $this->post('/cart', ['product_id' => $this->product->id, 'variant_id' => 999999, 'quantity' => 1])->assertSessionHasErrors('cart');
         $this->app['session']->flush();
-        $this->get('/cart')->assertSee('Your cart is empty.')->assertDontSee('Commerce Jacket');
+        $this->get('/cart')->assertSee('Your cart is empty for now.')->assertDontSee('Commerce Jacket');
         $this->patch('/cart/'.$this->variant->id, ['quantity' => 1])->assertNotFound();
         $this->assertSame(0, $this->variant->fresh()->reserved);
     }
@@ -219,9 +219,9 @@ class CommerceTest extends TestCase
         CommerceSettings::save(['shipping_minor' => null, 'tax_basis_points' => 0]);
         $this->invalid(fn () => CommerceSettings::totals(100));
         CommerceSettings::save(['shipping_minor' => 0, 'tax_basis_points' => null]);
-        $this->invalid(fn () => CommerceSettings::totals(100));
+        $this->assertSame(0, CommerceSettings::totals(100)['tax_minor']);
         CommerceSettings::save(['shipping_minor' => 0, 'tax_basis_points' => 1250, 'cod_enabled' => true]);
-        $this->assertSame(13, CommerceSettings::totals(101)['tax_minor']);
+        $this->assertSame(0, CommerceSettings::totals(101)['tax_minor']);
         $this->assertSame(0, CommerceSettings::totals(101)['shipping_minor']);
         $review = $this->review();
         $this->product->update(['pkr_price_minor' => 5555]);
@@ -240,7 +240,7 @@ class CommerceTest extends TestCase
         $response->assertRedirect(route('orders.show', $order->access_token));
         $this->post('/checkout', $payload)->assertRedirect(route('orders.show', $order->access_token));
         $this->assertSame(1, Order::count());
-        $this->get(route('orders.show', $order->access_token))->assertOk()->assertSee($order->number)->assertSee('PKR 1484.56');
+        $this->get(route('orders.show', $order->access_token))->assertOk()->assertSee($order->number)->assertSee('PKR 1,484.56');
     }
 
     public function test_filament_order_list_detail_and_stock_actions_render(): void
@@ -265,7 +265,8 @@ class CommerceTest extends TestCase
         $page->set('data.pkr_price_minor', '1234.57')->call('save')->assertHasNoFormErrors()->call('save')->assertHasNoFormErrors();
         $this->assertSame(123457, (int) $this->product->fresh()->pkr_price_minor);
         $path = 'colors.record-'.$this->variant->product_color_id.'.variants.record-'.$this->variant->id.'.stock_summary';
-        $page->callFormComponentAction($path, 'adjustStock', ['quantity' => 2, 'reason' => 'Verified opening count'])->assertHasNoFormErrors();
+        $page->callFormComponentAction($path, 'adjustStock')->assertSet('mountedActions.0.name', 'manageStock');
+        $page->set('mountedActions.0.data.rows.'.$this->variant->id.'.quantity', 2)->callMountedAction()->assertHasNoFormErrors();
         $this->assertSame(7, $this->variant->fresh()->on_hand);
         $this->assertSame($user->id, StockMovement::latest('id')->first()->actor_id);
         $order = $this->place();
@@ -280,10 +281,10 @@ class CommerceTest extends TestCase
         $this->post('/cart', ['product_id' => $this->product->id, 'variant_id' => $this->variant->id, 'quantity' => 1]);
         $key = $this->get('/checkout')->viewData('key');
         $payload = $this->customer() + ['checkout_key' => $key, 'reviewed' => 1];
-        $this->post('/checkout',$payload)->assertSessionMissing('cart');
-        $this->post('/cart',['product_id' => $this->product->id, 'variant_id' => $this->variant->id, 'quantity' => 1]);
-        $this->post('/checkout',$payload)->assertSessionHas('cart.'.$this->variant->id,1);
-        $this->assertSame(1,Order::count());
-        Queue::assertPushed(OrderNotification::class,fn ($job) => $job->afterCommit === true);
+        $this->post('/checkout', $payload)->assertSessionMissing('cart');
+        $this->post('/cart', ['product_id' => $this->product->id, 'variant_id' => $this->variant->id, 'quantity' => 1]);
+        $this->post('/checkout', $payload)->assertSessionHas('cart.'.$this->variant->id, 1);
+        $this->assertSame(1, Order::count());
+        Queue::assertPushed(OrderNotification::class, fn ($job) => $job->afterCommit === true);
     }
 }

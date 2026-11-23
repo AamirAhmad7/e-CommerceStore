@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Filament\Resources\Orders\Pages\ListOrders;
 use App\Filament\Resources\Orders\Pages\ViewOrder;
 use App\Jobs\OrderNotification;
+use App\Livewire\AdminOrderAlerts;
 use App\Models\Category;
 use App\Models\Order;
 use App\Models\Product;
@@ -96,7 +97,7 @@ class OrderCareTest extends TestCase
         $this->variant->productColor->product->update(['name' => 'CHANGED NAME']);
         $body = $order->events()->where('event_key', 'confirmation')->sole()->body;
         $this->assertStringContainsString('Saved jacket / Black / M', $body);
-        $this->assertStringContainsString('PKR 225.00', $body);
+        $this->assertStringContainsString('PKR 225', $body);
         $this->assertStringContainsString('care@example.test', $body);
         $this->assertStringNotContainsString('CHANGED', $body);
         $order->histories()->create(['status' => 'pending', 'payment_status' => 'unpaid', 'note' => 'SECRET STAFF NOTE']);
@@ -117,16 +118,30 @@ class OrderCareTest extends TestCase
         $r = $care->request($order->id, 'cancellation', $key, 'Changed mind');
         $this->assertSame($r->id, $care->request($order->id, 'cancellation', $key, 'Changed mind')->id);
         $this->invalid(fn () => $care->request($order->id, 'cancellation', $key, 'Different reason'));
-        foreach (['confirmed', 'processing', 'shipped'] as $state) {
+        foreach (['confirmed', 'processing'] as $state) {
             app(Fulfillment::class)->transition($order->id, $state, $this->staff->id);
         }
-        $this->invalid(fn () => $care->decide($order->id, $r->id, true, $this->staff->id, 'Approved'));
+        $this->invalid(fn () => app(Fulfillment::class)->transition($order->id, 'shipped', $this->staff->id));
         $care->decide($order->id, $r->id, false, $this->staff->id, 'Already shipped. Contact us after delivery.', 'PRIVATE NOTE');
         $care->decide($order->id, $r->id, false, $this->staff->id, 'Duplicate');
+        app(Fulfillment::class)->transition($order->id, 'shipped', $this->staff->id);
         $this->assertSame(8, $this->variant->fresh()->on_hand);
         $this->assertSame(0, $this->variant->fresh()->reserved);
         $this->assertSame(1, $order->events()->where('event_key', 'decision-'.$r->id)->count());
         $this->get(route('orders.show', $order->access_token))->assertSee('Already shipped.')->assertDontSee('PRIVATE NOTE')->assertDontSee('Request cancellation');
+    }
+
+    public function test_admin_alerts_show_pending_orders_and_cancellations(): void
+    {
+        config(['app.env' => 'local']);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $this->actingAs($this->staff);
+        $order = $this->order();
+        $page = Livewire::test(AdminOrderAlerts::class)->assertViewHas('pending', 1)->assertViewHas('cancellations', 0);
+        app(OrderCare::class)->request($order->id, 'cancellation', (string) Str::uuid(), 'Changed mind');
+        $page->call('$refresh')->assertViewHas('cancellations', 1)->assertSee('Cancellation requests');
+        auth()->logout();
+        Livewire::test(AdminOrderAlerts::class)->assertForbidden();
     }
 
     public function test_unpaid_cancellation_releases_once_and_cannot_refund(): void
@@ -312,25 +327,25 @@ class OrderCareTest extends TestCase
         $this->assertSame($before, $this->variant->fresh()->on_hand);
         $this->assertDatabaseCount('return_receipts', 0);
         $bad[$lines[1]->id] = ['resellable' => 0, 'damaged' => 1];
-        $care->receive($order->id,$request->id,$bad,$this->staff->id);
-        $this->assertSame($before + 1,$this->variant->fresh()->on_hand);
-        $this->assertDatabaseCount('return_receipts',2);
+        $care->receive($order->id, $request->id, $bad, $this->staff->id);
+        $this->assertSame($before + 1, $this->variant->fresh()->on_hand);
+        $this->assertDatabaseCount('return_receipts', 2);
     }
 
     public function test_additive_migration_preserves_old_receipts_and_backfills_verified_collection(): void
     {
         $order = $this->order();
         $this->deliver($order);
-        app(Fulfillment::class)->verifyPayment($order->id,$this->staff->id,'Old verified receipt');
+        app(Fulfillment::class)->verifyPayment($order->id, $this->staff->id, 'Old verified receipt');
         $lines = $order->lines()->get()->toArray();
         $total = $order->total_minor;
         $migration = require database_path('migrations/2026_11_20_082542_add_order_care_tables.php');
         $migration->down();
         $migration->up();
-        $this->assertSame($total,$order->fresh()->total_minor);
-        $this->assertSame($total,$order->fresh()->collected_minor);
+        $this->assertSame($total, $order->fresh()->total_minor);
+        $this->assertSame($total, $order->fresh()->collected_minor);
         $this->assertNotNull($order->fresh()->delivered_at);
-        $this->assertSame($lines,$order->lines()->get()->toArray());
-        $this->assertSame(8,$this->variant->fresh()->on_hand);
+        $this->assertSame($lines, $order->lines()->get()->toArray());
+        $this->assertSame(8, $this->variant->fresh()->on_hand);
     }
 }

@@ -7,6 +7,7 @@ use App\Models\DispatchManifest;
 use App\Models\Order;
 use App\Models\ProductVariant;
 use App\Models\Shipment;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -16,6 +17,13 @@ use Illuminate\Validation\ValidationException;
 
 final class Dispatching
 {
+    public static function readyToPack(): Builder
+    {
+        return Order::query()->whereIn('status', ['pending', 'confirmed', 'processing'])->whereDoesntHave('shipment')
+            ->where(fn ($query) => $query->where('payment_method', '!=', 'bank')->orWhere('payment_status', 'paid'))
+            ->whereDoesntHave('requests', fn ($query) => $query->where('type', 'cancellation')->where('status', 'pending'));
+    }
+
     public static function collectible(Order $order): int
     {
         return $order->payment_method === 'cod' ? max(0, (int) $order->total_minor - (int) $order->collected_minor) : 0;

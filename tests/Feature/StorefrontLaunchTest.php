@@ -75,7 +75,7 @@ class StorefrontLaunchTest extends TestCase
         $image = $this->product->addMedia(UploadedFile::fake()->image('legacy-guide.jpg'))->withCustomProperties(['placement' => 'size_guide', 'alt' => 'Legacy measurement drawing'])->toMediaCollection('shared');
         $page = Livewire::test(EditProduct::class, ['record' => $this->product->id])->fillForm(['size_guide_id' => $guide->id, 'size_guide_mode' => 'shared', 'material' => 'Owner supplied material', 'care' => 'Owner supplied care'])->call('save')->assertHasNoFormErrors();
         $other = Product::create(['name' => 'Other jacket', 'slug' => 'other', 'category_id' => $this->product->category_id, 'is_active' => true, 'size_guide_id' => $guide->id]);
-        $this->get('/products/launch-jacket')->assertOk()->assertSee('Garment measurements')->assertSee('Flat width (not circumference)')->assertSee('data-measure-value="53"', false)->assertSee('Legacy measurement drawing')->assertSee('Owner supplied care');
+        $this->get('/products/launch-jacket')->assertOk()->assertSee('Finished jacket measurements')->assertSee('Width - jacket laid flat')->assertSee('data-measure-value="53"', false)->assertSee('Legacy measurement drawing')->assertSee('Owner supplied care');
         $this->get('/products/other')->assertSee('data-measure-value="53"', false);
         $override = $this->guideData();
         $override['unit'] = 'in';
@@ -83,7 +83,7 @@ class StorefrontLaunchTest extends TestCase
         $override['measurements'][0]['method'] = 'circumference';
         $override['measurements'][0]['values'][0]['value'] = '40';
         $page->fillForm(['size_guide_mode' => 'override', 'size_guide_override' => $override])->call('save')->assertHasNoFormErrors()->call('save')->assertHasNoFormErrors();
-        $this->get('/products/launch-jacket')->assertSee('Body measurements')->assertSee('Full circumference')->assertSee('data-measure-value="40"', false);
+        $this->get('/products/launch-jacket')->assertSee('Body measurements')->assertSee('Circumference - around the body')->assertSee('data-measure-value="40"', false);
         $this->assertSame('cm', $guide->fresh()->unit);
         $this->assertSame($image->id, $this->product->fresh()->getFirstMedia('shared')->id);
         $page->fillForm(['size_guide_mode' => 'shared'])->call('save')->assertHasNoFormErrors();
@@ -150,11 +150,11 @@ class StorefrontLaunchTest extends TestCase
         $this->get('/')->assertOk()->assertSee('/collections/test-collection');
         $variant = $this->product->variants()->first();
         $this->get('/collections/test-collection?utm_source=test')->assertOk()->assertSee('Launch Jacket')->assertSee('data-share-url="'.rtrim(config('app.url'), '/').'/collections/test-collection"', false);
-        $this->get('/products/launch-jacket?color='.$variant->product_color_id.'&size=M&currency=USD')->assertOk()->assertSee('Size guide')->assertSee('USD 19.00');
+        $this->get('/products/launch-jacket?color='.$variant->product_color_id.'&size=M&currency=USD')->assertOk()->assertSee('Size guide')->assertSee('USD 19');
         $this->post('/cart', ['product_id' => $this->product->id, 'variant_id' => $variant->id, 'quantity' => 1])->assertRedirect(route('cart.show'));
         $this->patch('/cart/'.$variant->id, ['quantity' => 2])->assertRedirect(route('cart.show'));
-        $this->get('/cart')->assertSee('(2)')->assertSee('USD 38.00')->assertSee('PKR');
-        $checkout = $this->get('/checkout')->assertOk()->assertSee('PKR 2250.00');
+        $this->get('/cart')->assertSee('aria-label="Cart, 2 items"', false)->assertSee('USD 38')->assertSee('PKR');
+        $checkout = $this->get('/checkout')->assertOk()->assertSee('PKR 2,250');
         $key = $checkout->viewData('key');
         $data = ['checkout_key' => $key, 'name' => 'Demo Buyer', 'email' => 'buyer@example.test', 'phone' => '03000000000', 'address' => 'Test street', 'city' => 'Lahore', 'region' => 'Punjab', 'country' => 'PK', 'payment_method' => 'cod', 'reviewed' => 1];
         $this->post('/checkout', $data)->assertRedirect();
@@ -165,11 +165,11 @@ class StorefrontLaunchTest extends TestCase
         $this->assertEquals(2, $line->quantity);
         $this->assertEquals(225000, $order->total_minor);
         $this->assertSame('unpaid', $order->payment_status);
-        $this->get(route('orders.show', $order->access_token))->assertOk()->assertSee('PKR 2250.00')->assertSee('LAUNCH-BLK-M');
+        $this->get(route('orders.show', $order->access_token))->assertOk()->assertSee('PKR 2,250')->assertSee('LAUNCH-BLK-M');
         (new OrderNotification($order->id))->handle();
         $mail = Mail::mailer('array')->getSymfonyTransport()->messages()->last()->getOriginalMessage()->getTextBody();
         $this->assertStringContainsString('LAUNCH-BLK-M', $mail);
-        $this->assertStringContainsString('PKR 2250.00', $mail);
+        $this->assertStringContainsString('PKR 2,250', $mail);
         $this->assertStringContainsString(route('orders.show', $order->access_token), $mail);
         $this->app['session']->flush();
         $this->from('/find-order')->post('/find-order', ['number' => $order->number, 'email' => 'buyer@example.test'])->assertRedirect('/find-order');
@@ -179,7 +179,7 @@ class StorefrontLaunchTest extends TestCase
         $this->assertStringContainsString(route('orders.show', $order->access_token), $mail);
         $this->get(route('orders.show', $order->access_token))->assertSee('unpaid');
         $this->staff();
-        Livewire::test(ViewOrder::class, ['record' => $order->id])->assertOk()->assertSee('LAUNCH-BLK-M')->assertSee('2250.00');
+        Livewire::test(ViewOrder::class, ['record' => $order->id])->assertOk()->assertSee('LAUNCH-BLK-M')->assertSee('2,250');
     }
 
     public function test_changed_stock_rejects_checkout_without_order_and_offers_cart_review(): void
@@ -189,8 +189,8 @@ class StorefrontLaunchTest extends TestCase
         $key = $this->get('/checkout')->viewData('key');
         app(Inventory::class)->adjust($variant->id, -5, 'Test concurrent stock change', null);
         $this->from('/checkout')->post('/checkout', ['checkout_key' => $key, 'name' => 'Buyer', 'email' => 'buyer@example.test', 'phone' => '03000000000', 'address' => 'Street', 'city' => 'Lahore', 'region' => 'Punjab', 'country' => 'PK', 'payment_method' => 'cod', 'reviewed' => 1])->assertSessionHasErrors('checkout');
-        $this->assertSame(0,Order::count());
+        $this->assertSame(0, Order::count());
         $this->get('/cart')->assertSee('This item cannot be ordered')->assertSee('Remove it or reduce');
-        $this->get('/products/launch-jacket?size=M')->assertSee('Sold out')->assertSee('id="cart-submit" disabled',false);
+        $this->get('/products/launch-jacket?size=M')->assertSee('Sold out')->assertSee('id="cart-submit" disabled', false);
     }
 }

@@ -38,7 +38,7 @@ class CourierSettlements extends Page implements HasTable
 
     protected string $view = 'filament.pages.courier-settlements';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Orders';
+    protected static string|\UnitEnum|null $navigationGroup = 'Orders & customers';
 
     #[Url]
     public ?string $courier = null;

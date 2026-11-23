@@ -66,7 +66,21 @@ class PackingSlipTest extends TestCase
         $this->assertSame(2, substr_count($response->getContent(), '<td>Saved demo jacket</td>'));
         $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
         $this->assertSame('pending', $order->fresh()->status);
+        $this->get($url.'?document=address')->assertOk()->assertSee('COD TO COLLECT')->assertSee('PKR 55,500')
+            ->assertSee('Demo Recipient')->assertSee('03000000000')->assertDontSee('DEMO-BLK-M')->assertDontSee($order->access_token);
+        $this->get($url.'?document=invoice')->assertOk()->assertSee('Invoice')->assertSee('PKR 55,500')->assertSee('Saved demo jacket');
+        $this->get($url.'?document=products')->assertOk()->assertSee('DEMO-BLK-M')->assertSee('DEMO-BLK-L')->assertDontSee('Demo Recipient')->assertDontSee('PKR 55,500');
+        $this->get($url.'?document=unknown')->assertNotFound();
+        $order->update(['collected_minor' => 50000]);
+        $this->get($url.'?document=address')->assertSee('PKR 55,000');
+        $order->update(['payment_status' => 'paid']);
+        $this->get($url.'?document=address')->assertSee('PKR 0');
+        $order->update(['payment_status' => 'unpaid', 'status' => 'cancelled']);
+        $this->get($url.'?document=address')->assertSee('DO NOT DISPATCH OR COLLECT')->assertSee('PKR 0');
         config(['app.env' => 'production']);
         $this->get($url)->assertForbidden();
+        $this->get($url.'?document=address')->assertForbidden();
+        $this->get($url.'?document=invoice')->assertForbidden();
+        $this->get($url.'?document=products')->assertForbidden();
     }
 }

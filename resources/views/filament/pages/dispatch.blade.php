@@ -13,8 +13,9 @@
     </div>
     <p>Expected COD in transit is not counted as collected. Monetary figures use verified collection evidence. Date filters above use order creation date.</p>
     <nav aria-label="Dispatch views" style="display:flex;gap:1rem;flex-wrap:wrap">
-        @foreach(['ready' => 'Ready to pack', 'packed' => 'Packed', 'with_courier' => 'With courier', 'issue' => 'Delivery issue', 'returning' => 'Returning to store', 'delivered' => 'Delivered / record collection', 'returned' => 'Returned', 'all' => 'All / older orders'] as $value => $label)<button type="button" wire:click="$set('stage', '{{ $value }}')" @if($stage === $value) aria-current="page" style="font-weight:bold;text-decoration:underline" @endif>{{ $label }}</button>@endforeach
+        @foreach(['packable' => 'Ready to pack', 'ready' => 'Unpacked (including blocked)', 'packed' => 'Packed', 'with_courier' => 'With courier', 'issue' => 'Delivery issue', 'returning' => 'Returning to store', 'delivered' => 'Completed / record collection', 'returned' => 'Returned', 'all' => 'All / older orders'] as $value => $label)<button type="button" wire:click="$set('stage', '{{ $value }}')" @if($stage === $value) aria-current="page" style="font-weight:bold;text-decoration:underline" @endif>{{ $label }}</button>@endforeach
     </nav>
-    <p>Select packed parcels, then choose Review courier handover. Printing a picking list or slip changes no stock.</p>
+    <p>Select packed parcels, then choose Assign to courier. Printing a picking list or slip changes no stock.</p>
     {{ $this->table }}
 </x-filament-panels::page>
+

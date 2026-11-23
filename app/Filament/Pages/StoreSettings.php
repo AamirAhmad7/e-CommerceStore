@@ -9,7 +9,11 @@ use Illuminate\Support\Facades\Gate;
 
 class StoreSettings extends Page
 {
+    protected static string|\UnitEnum|null $navigationGroup = 'Settings';
+
     protected string $view = 'filament.pages.store-settings';
+
+    public array $pages = [];
 
     public string $brandName = '';
 
@@ -23,6 +27,7 @@ class StoreSettings extends Page
     public function mount(): void
     {
         Gate::authorize('manage-commerce');
+        $this->pages = Settings::pages();
         $this->brandName = Settings::brandName();
         $this->whatsappNumber = Settings::whatsappNumber() ?? '';
     }
@@ -34,6 +39,11 @@ class StoreSettings extends Page
         $this->whatsappNumber = trim($this->whatsappNumber);
 
         $this->validate([
+            'pages.about' => 'nullable|string|max:6000',
+            'pages.address' => 'nullable|string|max:500',
+            'pages.hours' => 'nullable|string|max:500',
+            'pages.privacy' => 'nullable|string|max:12000',
+            'pages.terms' => 'nullable|string|max:12000',
             'brandName' => ['required', 'string', 'max:120'],
             'whatsappNumber' => ['nullable', 'regex:'.Settings::WHATSAPP_NUMBER_PATTERN],
         ], [
@@ -42,6 +52,7 @@ class StoreSettings extends Page
             'whatsappNumber.regex' => 'Use an international number with country code, 8–15 digits, and an optional leading +. Do not include spaces or punctuation.',
         ]);
 
+        Settings::savePages($this->pages);
         Settings::setBrandName($this->brandName);
         Settings::setWhatsappNumber($this->whatsappNumber);
 

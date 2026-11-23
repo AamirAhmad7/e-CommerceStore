@@ -8,6 +8,7 @@ use App\Services\Inventory;
 use App\Services\Purchasing;
 use App\Services\VariantPricing;
 use App\Support\CommerceAction;
+use App\Support\ProductWorkspace;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
@@ -34,7 +35,7 @@ final class ManageStockAction
                     $rows[$variant->id] = ['snapshot' => app(Inventory::class)->adjustmentSnapshot($variant->id), 'quantity' => null];
                 }
 
-                return ['rows' => $rows, 'mode' => isset($arguments['variant'], $rows[$arguments['variant']]) && Inventory::readSnapshot($rows[$arguments['variant']]['snapshot'])['on_hand'] !== null ? 'receive' : 'opening', 'focus' => $arguments['variant'] ?? null];
+                return ['delivery_source' => 'independent', 'rows' => $rows, 'mode' => isset($arguments['variant'], $rows[$arguments['variant']]) && Inventory::readSnapshot($rows[$arguments['variant']]['snapshot'])['on_hand'] !== null ? 'receive' : 'opening', 'focus' => $arguments['variant'] ?? null];
             })
             ->schema(function (Product $record): array {
                 $product = $record->fresh(['colors.variants']);
@@ -80,6 +81,7 @@ final class ManageStockAction
                 });
                 $count = count(array_filter($data['rows'], fn ($row) => ($row['quantity'] ?? '') !== '' && $row['quantity'] !== null));
                 $record->refresh();
+                ProductWorkspace::forget();
                 Notification::make()->success()->title(($data['mode'] === 'receive' ? 'Received '.$units.' units' : 'Stock updated').' across '.$count.($count === 1 ? ' size.' : ' sizes.'))->send();
             });
     }

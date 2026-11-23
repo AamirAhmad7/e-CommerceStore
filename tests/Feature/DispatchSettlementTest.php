@@ -136,7 +136,7 @@ class DispatchSettlementTest extends TestCase
         $this->assertSame(1, $order->events()->where('event_key', 'status-shipped')->count());
         $this->assertSame(0, $prepaid->fresh()->shipment->expected_cod_minor);
         $this->assertSame(1850000, $order->fresh()->shipment->expected_cod_minor);
-        $this->get(route('dispatch.manifest', $manifest))->assertOk()->assertSee('000123/A B')->assertSee('PKR 18500.00');
+        $this->get(route('dispatch.manifest', $manifest))->assertOk()->assertSee('000123/A B')->assertSee('PKR 18,500');
         $this->courier->update(['is_active' => false, 'tracking_template' => 'https://changed.example/{tracking}']);
         $this->assertSame('https://courier.example/track?number=000123%2FA%20B', $order->fresh()->shipment->trackingUrl());
         $this->get(route('orders.show', $order->access_token))->assertOk()->assertSee('Track parcel')->assertDontSee('Net remitted');

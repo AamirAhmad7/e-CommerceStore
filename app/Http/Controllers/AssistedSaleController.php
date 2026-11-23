@@ -25,7 +25,7 @@ class AssistedSaleController extends Controller
             $quote = $cart->quote($link->items, 'PKR');
             try {
                 AssistedSales::requireAvailable($quote);
-                $totals = CommerceSettings::totals($quote['subtotal']);
+                $totals = CommerceSettings::totals($quote['subtotal'], CommerceSettings::forQuote($quote, CommerceSettings::get()));
             } catch (ValidationException $exception) {
                 $problem = collect($exception->errors())->flatten()->implode(' ');
             }

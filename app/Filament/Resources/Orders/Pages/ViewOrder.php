@@ -34,7 +34,13 @@ class ViewOrder extends ViewRecord
                 ->url(fn (): string => route('orders.packing-slip', $this->record))
                 ->openUrlInNewTab(),
         ];
-        foreach (['confirmed' => 'Confirm', 'processing' => 'Process', 'shipped' => 'Ship', 'delivered' => 'Deliver', 'cancelled' => 'Cancel'] as $status => $label) {
+        foreach (['address' => 'Print address label', 'invoice' => 'Print invoice', 'products' => 'Print product details'] as $document => $label) {
+            $actions[] = Action::make('print'.ucfirst($document))->label($label)->icon('heroicon-o-printer')
+                ->visible(fn (): bool => Gate::allows('view', $this->record))
+                ->url(fn (): string => route('orders.packing-slip', ['order' => $this->record, 'document' => $document]))
+                ->openUrlInNewTab();
+        }
+        foreach (['confirmed' => 'Confirm', 'processing' => 'Start packing', 'shipped' => 'Ship', 'delivered' => 'Complete (delivered)', 'cancelled' => 'Cancel'] as $status => $label) {
             $actions[] = Action::make($status)->label($label)->requiresConfirmation()
                 ->visible(fn (): bool => $status !== 'shipped' && ! ($status === 'delivered' && $this->record->shipment) && in_array($status, Fulfillment::NEXT[$this->record->status] ?? [], true)
                     && (! in_array($status, ['processing', 'shipped'], true) || $this->record->payment_method !== 'bank' || $this->record->payment_status === 'paid')

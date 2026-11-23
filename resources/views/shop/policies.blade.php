@@ -3,7 +3,7 @@
 @section('content')
 <main id="product" class="product-shell policy-page">
     <p class="eyebrow">Customer information</p><h1 class="page-heading">Delivery &amp; returns</h1>
-    <section><h2>Delivery within Pakistan</h2><p>Checkout currently accepts Pakistan addresses and charges PKR. USD is a browsing currency, not an exchange-rate quote.</p>
+    <section><h2>Delivery within Pakistan</h2><p>We deliver within Pakistan. All prices and order totals are in PKR.</p>
     <p>Enter your delivery details and review your cart at checkout to see the applicable delivery charge and total before placing your order.</p>
     @if(filled($settings['delivery_information']))<p class="preserve-lines">{{ $settings['delivery_information'] }}</p>@else<p>Delivery details have not been published yet. Please contact the store before ordering if you need a delivery estimate.</p>@endif</section>
     <section><h2>Returns</h2>

@@ -1,9 +1,9 @@
 <x-filament-panels::page>
     <p>Advisory snapshot. Ready means configured, not independently verified or approved. Viewing this page never publishes content, changes stock/prices, enables checkout or sends email. Reload to refresh.</p>
-    @foreach(['Needs configuration','Manual check','Ready'] as $status)
+    @foreach(['Needs configuration','Optional improvement','Manual check','Ready'] as $status)
     <x-filament::section :heading="$status">
         <div class="space-y-5">@forelse(collect($findings)->where('status',$status) as $finding)
-            <article><h3 class="font-semibold">{{ $finding['title'] }}</h3><p>{{ $finding['detail'] }}</p>@if($finding['url'])<a class="underline" href="{{ $finding['url'] }}">Open {{ $finding['title'] }} settings</a>@endif</article>
+            <article><h3 class="font-semibold">{{ $finding['scope'] }}: {{ $finding['title'] }}</h3><p>{{ $finding['detail'] }}</p>@if($finding['url'])<a class="underline" href="{{ $finding['url'] }}">Open {{ $finding['title'] }} settings</a>@endif</article>
         @empty<p>No findings in this group.</p>@endforelse</div>
     </x-filament::section>
     @endforeach

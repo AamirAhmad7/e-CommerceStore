@@ -48,6 +48,9 @@ class CollectionController extends Controller
     {
         $home = Homepage::where('key', 'main')->first(['published_at']);
         $urls = [['loc' => StorefrontCampaigns::url('home'), 'lastmod' => $home?->published_at?->toAtomString()], ['loc' => StorefrontCampaigns::url('shop'), 'lastmod' => null]];
+        foreach (['about', 'contact', 'faq', 'privacy', 'terms'] as $page) {
+            $urls[] = ['loc' => route('information.'.$page), 'lastmod' => null];
+        }
         foreach (Product::visible()->whereHas('variants', fn ($q) => $q->where('product_variants.is_active', true))->select(['id', 'slug', 'updated_at'])->withMax('variants', 'updated_at')->lazyById(500) as $product) {
             $changed = max($product->updated_at->toAtomString(), $product->variants_max_updated_at ? Carbon::parse($product->variants_max_updated_at)->toAtomString() : '');
             $urls[] = ['loc' => StorefrontCampaigns::url('products.show', ['product' => $product->slug]), 'lastmod' => $changed];

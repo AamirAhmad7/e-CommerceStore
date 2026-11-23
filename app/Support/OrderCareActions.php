@@ -77,10 +77,10 @@ final class OrderCareActions
         }
         foreach ($record->events()->orderByDesc('id')->get() as $event) {
             $components[] = Section::make($event->subject)->key('event-'.$event->id)->schema([
-                TextEntry::make('delivery_'.$event->id)->label('Email delivery')->state($event->sent_at ? 'Sent '.$event->sent_at : ($event->last_error ? 'Failed: '.$event->last_error : 'Queued / pending worker')),
+                TextEntry::make('delivery_'.$event->id)->label('Email delivery')->state(! $event->recipient ? 'Not sent - no email provided' : ($event->sent_at ? 'Sent '.$event->sent_at : ($event->last_error ? 'Failed: '.$event->last_error : 'Queued / pending worker'))),
                 Actions::make([
                     Action::make('message'.$event->id)->label('Open message preview')->url(route('orders.message', $event))->openUrlInNewTab(),
-                    Action::make('retryMessage'.$event->id)->label('Retry unsent email')->visible(! $event->sent_at)->requiresConfirmation()->after(fn ($livewire) => $livewire->refreshOrderCare())->action(function () use ($record, $event): void {
+                    Action::make('retryMessage'.$event->id)->label('Retry unsent email')->visible(! $event->sent_at && filled($event->recipient))->requiresConfirmation()->after(fn ($livewire) => $livewire->refreshOrderCare())->action(function () use ($record, $event): void {
                         self::run($record, fn () => OrderMessages::queue($event));
                     }),
                 ]),

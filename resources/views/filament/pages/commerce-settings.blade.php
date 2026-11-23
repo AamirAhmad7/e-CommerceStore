@@ -1,8 +1,30 @@
 <x-filament-panels::page>
-<form wire:submit="save" class="space-y-6">
+<p role="status">Store-default checkout: <strong>{{ \App\Services\CommerceSettings::checkoutReady() ? 'Live - customers can order' : 'Default not ready - check delivery and payment settings below' }}</strong>. Products with their own delivery charge can be ordered when a payment method is enabled. Unsaved changes do not affect the storefront.</p>
+<p>Product delivery charges: Catalog &gt; Products &gt; Edit product &gt; Pricing. Enter the charge once for all colors and sizes. Blank uses the store default below; 0 means free. Checkout charges the highest applicable rate once per order, subject to the free-delivery threshold.</p>
+<form wire:submit="save" class="sf-admin-settings space-y-6">
+<x-filament::section heading="International inquiry shipping (USD)">
+<p>These terms apply to inquiries only. They never change Pakistan checkout or convert selling prices. Countries without a separate rate require a quote.</p>
+<label>Shipping terms<select wire:model="data.international_shipping_mode"><option value="quote">Request a shipping quote</option><option value="included">Included in advertised USD prices</option><option value="separate">Charged separately by destination</option></select></label>
+@foreach($data['international_shipping_rates'] ?? [] as $index => $rate)
+<div wire:key="international-rate-{{ $index }}" style="display:flex;gap:1rem;flex-wrap:wrap;margin:1rem 0">
+<label>Country name<input wire:model="data.international_shipping_rates.{{ $index }}.destination" placeholder="United Kingdom"></label>
+<label>USD estimate<input inputmode="decimal" wire:model="data.international_shipping_rates.{{ $index }}.amount"></label>
+<label>Charge once per<select wire:model="data.international_shipping_rates.{{ $index }}.basis"><option value="order">Order</option><option value="item">Jacket</option></select></label>
+<x-filament::button color="gray" type="button" wire:click="removeInternationalRate({{ $index }})">Remove rate</x-filament::button>
+</div>@endforeach
+<x-filament::button color="gray" type="button" wire:click="addInternationalRate">Add destination rate</x-filament::button>
+@foreach($errors->getMessages() as $key => $messages)@if(str_starts_with($key, 'data.international_'))<p role="alert">{{ implode(' ', $messages) }}</p>@endif @endforeach
+<p>Rates are staged until you save the rules below. Included shipping adds zero extra charge. An order rate applies once to the entire inquiry.</p>
+</x-filament::section>
     <x-filament::section heading="Pakistan checkout rules">
-        <p>Enter your own shipping and tax rules. Blank shipping or tax disables checkout; enter 0 explicitly if no charge applies. Prices are explicit PKR, never converted from USD.</p>
-        @foreach(['shipping_name'=>'Delivery method name','shipping_minor'=>'Shipping rate (PKR)','free_shipping_minor'=>'Free shipping from (PKR, optional)','tax_basis_points'=>'Tax percentage on merchandise (explicit 0 allowed)','expiry_hours'=>'Unpaid bank transfer expiry (hours)'] as $key=>$label)
+        <p>Choose Free delivery or a Fixed delivery charge and enable a payment method. Once saved, checkout becomes available automatically. Until then, shoppers can browse and contact you to order. No additional tax is charged.</p>
+<label for="delivery-mode">Delivery charges</label>
+<x-filament::input.wrapper><x-filament::input.select id="delivery-mode" wire:model.live="deliveryMode"><option value="unconfigured">Not configured - checkout unavailable</option><option value="free">Free delivery</option><option value="fixed">Fixed delivery charge</option></x-filament::input.select></x-filament::input.wrapper>
+@error('deliveryMode')<p role="alert">{{ $message }}</p>@enderror
+@if($deliveryMode === 'free')<p>Customers pay no delivery charge. This takes effect when you save below.</p>@endif
+
+        @foreach(['shipping_name'=>'Delivery method name','shipping_minor'=>'Shipping rate (PKR)','free_shipping_minor'=>'Free shipping from (PKR, optional)','expiry_hours'=>'Unpaid bank transfer expiry (hours)'] as $key=>$label)
+        @continue(in_array($key, ['shipping_minor', 'free_shipping_minor'], true) && $deliveryMode !== 'fixed')
         <div class="mt-4"><label for="{{ $key }}">{{ $label }}</label><x-filament::input.wrapper><x-filament::input id="{{ $key }}" wire:model="data.{{ $key }}" /></x-filament::input.wrapper>@error('data.'.$key)<p>{{ $message }}</p>@enderror</div>
         @endforeach
         <label class="block mt-4"><input type="checkbox" wire:model="data.cod_enabled"> Enable cash on delivery</label>
@@ -30,3 +52,4 @@
     </x-filament::section>
 </form>
 </x-filament-panels::page>
+

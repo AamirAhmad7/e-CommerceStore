@@ -7,7 +7,7 @@
 @endsection
 @section('content')
 @if($preview)<aside class="preview-banner">Staff preview. Saved changes only; only storefront-eligible products are shown. This does not publish the collection.</aside>@endif
-<main id="product" class="product-shell">
+<main id="product" class="product-shell catalog-page">
     <p class="breadcrumb"><a href="{{ route('shop') }}">Shop</a> / {{ $collection->title }}</p>
     <h1 class="page-heading">{{ $collection->title }}</h1>
     @if($collection->introduction)<p class="campaign-intro">{{ $collection->introduction }}</p>@endif
@@ -19,8 +19,11 @@
             <span role="status" data-share-status></span>
         </div>
     @endif
-    @include('shop.filters')
-    <div class="product-cards">@forelse($cards as $card) @include('products.card',['priority'=>$loop->first]) @empty @include('shop.empty') @endforelse</div>
+    <div class="catalog-layout">
+<aside class="catalog-filters" aria-label="Product filters">@include('shop.listing-toolbar')@include('shop.filters')</aside>
+<section class="catalog-results" aria-label="Product results">@include('shop.results-summary')
+    <div class="product-cards">@forelse($cards as $card) @include('products.card',['priority'=>$loop->first, 'listing' => true]) @empty @include('shop.empty') @endforelse</div>
     <div class="pagination">{{ $items->links() }}</div>
+</section></div>
 </main>
 @endsection

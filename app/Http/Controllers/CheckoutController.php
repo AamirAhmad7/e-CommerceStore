@@ -10,6 +10,8 @@ use App\Services\Cart;
 use App\Services\Checkout;
 use App\Services\CommerceSettings;
 use App\Services\Promotions;
+use App\Support\PakistanAddress;
+use App\Support\StorefrontEvents;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,7 +38,7 @@ class CheckoutController extends Controller
         $promotion = null;
         $key = null;
         $settings = CommerceSettings::get();
-        $methods = array_filter(Gateways::all(), fn ($g) => $g->enabled($settings));
+        $methods = array_filter(Gateways::all(), fn ($g) => $g->enabled($settings) && (! config('store.pakistan_only') || $g->code() === 'cod'));
         try {
             if ($assistedLink) {
                 AssistedSales::requireAvailable($quote);
@@ -58,9 +60,14 @@ class CheckoutController extends Controller
             $error = collect($exception->errors())->flatten()->first();
         }
 
+        $setupBlocked = $error !== null && $quote['valid'] && ! CommerceSettings::quoteReady($quote);
+        if ($setupBlocked) {
+            $error = 'Online ordering is temporarily unavailable. Please contact the store for help with your order.';
+        }
         $noindex = true;
+        $storefrontEvents = $totals && ! $error ? [StorefrontEvents::checkout($quote, $totals)] : [];
 
-        return view('shop.checkout', compact('quote', 'totals', 'key', 'error', 'methods', 'assistedLink', 'noindex', 'promotion'));
+        return view('shop.checkout', compact('storefrontEvents', 'quote', 'totals', 'key', 'error', 'methods', 'assistedLink', 'noindex', 'promotion', 'setupBlocked'));
     }
 
     public function store(Request $request, Cart $cart, Checkout $checkout): RedirectResponse
@@ -68,7 +75,11 @@ class CheckoutController extends Controller
         $reviewKey = $request->input('checkout_key');
         $review = is_string($reviewKey) ? $request->session()->get('checkout_reviews.'.$reviewKey) : null;
         try {
-            $data = $request->validate(['checkout_key' => 'required|uuid', 'name' => 'required|string|max:120', 'email' => 'required|email|max:254', 'phone' => ['required', 'string', 'max:25', 'regex:/^[+0-9 ()-]{7,25}$/'], 'address' => 'required|string|max:500', 'city' => 'required|string|max:100', 'region' => 'required|string|max:100', 'postal_code' => 'nullable|string|max:20', 'country' => 'required|in:PK', 'payment_method' => 'required|in:cod,bank', 'reviewed' => 'accepted']);
+            $rawPhone = $request->input('phone');
+            if (is_string($rawPhone)) {
+                $request->merge(['phone' => PakistanAddress::phone($rawPhone) ?? $rawPhone]);
+            }
+            $data = $request->validate(['checkout_key' => 'required|uuid', 'name' => 'required|string|max:120', 'email' => 'nullable|email|max:254', 'phone' => ['required', 'string', 'max:25', 'regex:/^03[0-9]{9}$/'], 'address' => 'required|string|max:500', 'city' => 'required|string|max:100', 'region' => 'required|string|max:100', 'postal_code' => 'nullable|string|max:20', 'country' => 'required|in:PK', 'payment_method' => config('store.pakistan_only') ? 'required|in:cod' : 'required|in:cod,bank', 'order_notes' => 'nullable|string|max:1000', 'reviewed' => 'accepted'], ['phone.regex' => 'Enter a Pakistani mobile number, for example 03XX XXXXXXX.']);
             if (! $review) {
                 throw ValidationException::withMessages(['checkout' => 'This review expired. Open checkout again.']);
             }
@@ -83,8 +94,10 @@ class CheckoutController extends Controller
             }
             throw $exception;
         }
+        $request->session()->put('checkout_input', $request->only(['name', 'email', 'phone', 'address', 'city', 'region', 'postal_code', 'payment_method', 'order_notes']));
         $key = $data['checkout_key'];
         unset($data['checkout_key'],$data['reviewed']);
+        $data['email'] = $data['email'] ?? '';
         if ($review['assisted_link_id'] ?? null) {
             $link = AssistedSaleLink::findOrFail($review['assisted_link_id']);
             try {
@@ -103,8 +116,22 @@ class CheckoutController extends Controller
             $request->session()->forget(['cart', 'cart_snapshot']);
         }
         $request->session()->put('checkout_completed.'.$key, true);
+        $request->session()->forget('checkout_input');
+        $request->session()->put('received_order', $order->id);
+
+        if (config('store.pakistan_only')) {
+            return redirect()->route('orders.received');
+        }
 
         return redirect()->route('orders.show', $order->access_token);
+    }
+
+    public function received(Request $request, Cart $cart): View
+    {
+        $order = Order::whereKey($request->session()->get('received_order'))->where('guest_hash', $cart->guest($request))->with(['lines', 'histories', 'requests.lines.orderLine', 'events' => fn ($query) => $query->where('customer_visible', true)->orderBy('id')])->firstOrFail();
+        $storefrontEvents = [StorefrontEvents::purchase($order)];
+
+        return view('shop.order', ['order' => $order, 'noindex' => true, 'storefrontEvents' => $storefrontEvents]);
     }
 
     public function order(string $token)

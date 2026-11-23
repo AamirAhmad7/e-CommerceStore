@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Middleware\CapturePromotion;
+use App\Http\Middleware\PersistStorefrontCart;
+use App\Http\Middleware\RecordStorefrontTraffic;
+use App\Http\Middleware\SelectDeliveryMarket;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -13,7 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->web(append: [CapturePromotion::class]);
+        $middleware->web(append: [SelectDeliveryMarket::class, PersistStorefrontCart::class, CapturePromotion::class, RecordStorefrontTraffic::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

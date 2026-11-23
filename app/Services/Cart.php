@@ -38,8 +38,16 @@ final class Cart
             throw ValidationException::withMessages(['cart' => 'This variant is not available.']);
         }
         $quantity += $merge ? (int) ($items[$variantId] ?? 0) : 0;
-        if ($quantity < 1 || $quantity > 100 || $quantity > Inventory::available($v)) {
-            throw ValidationException::withMessages(['cart' => 'Choose a quantity within available stock (maximum 100).']);
+        $available = Inventory::available($v);
+        if ($quantity > $available) {
+            $inCart = (int) ($items[$variantId] ?? 0);
+            $message = $available === 1 && $merge && $inCart >= 1
+                ? "This is the last piece and it's already in your cart."
+                : ($available === 0 ? 'This size just sold out.' : 'Only '.$available.' '.($available === 1 ? 'piece is' : 'pieces are').' available in this size.'.($merge && $inCart > 0 ? ' You already have '.$inCart.' in your cart.' : ''));
+            throw ValidationException::withMessages(['cart' => $message]);
+        }
+        if ($quantity < 1 || $quantity > 100) {
+            throw ValidationException::withMessages(['cart' => 'Enter a quantity from 1 to 100. For a larger order, please contact the store.']);
         }
         $currency = Pricing::currency($request->session()->get('currency'));
         if (! Inventory::purchasable($v, $currency)) {

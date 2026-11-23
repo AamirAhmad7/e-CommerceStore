@@ -15,7 +15,7 @@ class CategoryForm
         return $schema->components([
             SeoFields::section('name', 'description'),
             TextInput::make('name')
-                ->label('Category name')
+                ->label('Category name')->helperText('A product type, such as Leather Jackets. Each product belongs to one category.')
                 ->required()
                 ->maxLength(120),
 

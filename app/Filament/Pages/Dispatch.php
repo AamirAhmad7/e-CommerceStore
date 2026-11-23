@@ -24,7 +24,7 @@ class Dispatch extends Page implements HasTable
 
     protected string $view = 'filament.pages.dispatch';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Orders';
+    protected static string|\UnitEnum|null $navigationGroup = 'Orders & customers';
 
     #[Url]
     public string $stage = 'ready';
@@ -67,7 +67,9 @@ class Dispatch extends Page implements HasTable
     {
         return $table->query(function (): Builder {
             $query = $this->base()->with(['shipment', 'lines'])->withSum('lines', 'quantity');
-            if ($this->stage === 'ready') {
+            if ($this->stage === 'packable') {
+                $query->whereIn('orders.id', Dispatching::readyToPack()->select('orders.id'));
+            } elseif ($this->stage === 'ready') {
                 $query->whereIn('status', ['pending', 'confirmed', 'processing'])->whereDoesntHave('shipment');
             } elseif ($this->stage === 'awaiting') {
                 $query->whereIn('status', ['pending', 'confirmed', 'processing']);
@@ -81,7 +83,7 @@ class Dispatch extends Page implements HasTable
         })->columns([
             TextColumn::make('number')->label('Order')->searchable()->url(fn (Order $record): string => OrderResource::getUrl('view', ['record' => $record->id])),
             TextColumn::make('customer.city')->label('City'), TextColumn::make('lines_sum_quantity')->label('Units'), TextColumn::make('payment_method'),
-            TextColumn::make('dispatch_status')->label('Dispatch status')->badge(),
+            TextColumn::make('dispatch_status')->label('Order stage')->formatStateUsing(fn (Order $record): string => $record->stageLabel())->badge(),
             TextColumn::make('collectible')->label('Amount to collect')->state(fn (Order $record): string => Pricing::format($record->shipment && $record->shipment->stage !== 'packed' ? $record->shipment->expected_cod_minor : Dispatching::collectible($record))),
             TextColumn::make('shipment.collected_minor')->label('Confirmed COD collected')->formatStateUsing(fn ($state): string => Pricing::format((int) $state))->placeholder('Not recorded'),
             TextColumn::make('shipment.tracking_number')->label('Tracking')->searchable(),

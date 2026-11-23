@@ -44,7 +44,7 @@ final class DispatchActions
                     Notification::make()->success()->title('Historical courier details attached')->send();
                 }),
         ];
-        foreach (['issue' => 'Record delivery issue', 'with_courier' => 'Plan reattempt', 'returning' => 'Returning to store', 'delivered' => 'Mark delivered'] as $target => $label) {
+        foreach (['issue' => 'Record delivery issue', 'with_courier' => 'Plan reattempt', 'returning' => 'Returning to store', 'delivered' => 'Complete order (delivered)'] as $target => $label) {
             $actions[] = Action::make('parcel_'.$target)->label($label)->visible(fn (Order $record): bool => $record->status === 'shipped' && in_array($record->shipment?->stage, $target === 'with_courier' ? ['issue'] : ['with_courier', 'issue'], true))
                 ->fillForm(fn (Order $record): array => ['snapshot' => Dispatching::snapshot($record), 'reason' => $target === 'issue' ? null : $label])
                 ->schema([Hidden::make('snapshot'), Select::make('reason')->label('Reason')->options(['customer_unavailable' => 'Customer unavailable', 'address_clarification' => 'Address clarification', 'refusal' => 'Refusal', 'other' => 'Other', $label => $label])->required(), Textarea::make('note')->label('Internal note')->maxLength(1000), Textarea::make('explanation')->label('Customer-visible explanation (optional)')->maxLength(1000)])
@@ -81,10 +81,10 @@ final class DispatchActions
     {
         return [
             BulkAction::make('pickingList')->label('Print combined picking list')->action(fn ($records, $livewire) => $livewire->redirect(route('dispatch.picking', ['orders' => $records->modelKeys()]))),
-            BulkAction::make('handover')->label('Review courier handover')->modalWidth('7xl')
+            BulkAction::make('handover')->label('Assign to courier')->modalWidth('7xl')
                 ->fillForm(fn ($records): array => ['key' => (string) Str::uuid(), 'rows' => $records->map(fn (Order $order): array => ['order_id' => $order->id, 'snapshot' => Dispatching::snapshot($order), 'description' => $order->number.' / '.$order->customer['city'].' / Collect '.Pricing::format(Dispatching::collectible($order)), 'readiness' => Dispatching::blocked($order) ?? ($order->shipment?->stage === 'packed' ? 'Ready for handover' : 'Must be packed first')])->all()])
                 ->schema([Hidden::make('key'), Repeater::make('rows')->label('One parcel per order; all rows must be ready')->addable(false)->deletable(false)->reorderable(false)->schema([Hidden::make('order_id'), Hidden::make('snapshot'), TextInput::make('description')->readOnly()->dehydrated(false), TextInput::make('readiness')->readOnly()->dehydrated(false), Select::make('courier_id')->label('Courier')->options(fn () => Courier::where('is_active', true)->get()->mapWithKeys(fn ($c) => [$c->id => $c->name.($c->service_name ? ' / '.$c->service_name : '')])->all())->required(), TextInput::make('tracking_number')->label('Tracking number (text, keep leading zeros)')->required()->maxLength(150)])->columns(2)])
-                ->modalSubmitActionLabel('Confirm handover and print manifest')
+                ->modalSubmitActionLabel('Assign and hand over to courier')
                 ->action(function (array $data, $livewire): void {
                     $manifest = null;
                     CommerceAction::run(function () use ($data, &$manifest): void {

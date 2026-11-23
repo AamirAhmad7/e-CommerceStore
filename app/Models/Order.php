@@ -22,6 +22,29 @@ class Order extends Model
         return $this->hasOne(Shipment::class);
     }
 
+    public function stageLabel(): string
+    {
+        if ($this->status === 'processing' && $this->shipment?->stage === 'packed') {
+            return 'Packed - ready to assign to courier';
+        }
+
+        return match ($this->status) {
+            'pending' => 'Awaiting confirmation',
+            'confirmed' => 'Confirmed - ready to pack',
+            'processing' => 'Packing in progress',
+            'shipped' => match ($this->shipment?->stage) {
+                'issue' => 'Delivery issue',
+                'returning' => 'Returning to sender',
+                default => 'Assigned to courier - in transit',
+            },
+            'delivered' => 'Completed - delivered',
+            'cancelled' => 'Cancelled',
+            'expired' => 'Expired - payment not received',
+            'returned' => 'Returned to sender',
+            default => ucfirst($this->status),
+        };
+    }
+
     public function getDispatchStatusAttribute(): string
     {
         return in_array($this->status, ['cancelled', 'expired', 'delivered', 'returned'], true) ? $this->status : ($this->shipment?->stage ?? (in_array($this->status, ['pending', 'confirmed', 'processing'], true) ? 'ready' : 'with_courier'));

@@ -28,7 +28,7 @@ class OrderNotification implements ShouldQueue
         try {
             DB::transaction(function () use ($eventId): void {
                 $event = OrderEvent::lockForUpdate()->findOrFail($eventId);
-                if ($event->sent_at) {
+                if ($event->sent_at || ! filter_var($event->recipient, FILTER_VALIDATE_EMAIL)) {
                     return;
                 }
                 $database = config('database.connections.'.config('database.default').'.database');

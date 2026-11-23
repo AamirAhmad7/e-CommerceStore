@@ -6,6 +6,7 @@ use App\Filament\Resources\Products\Pages\EditProduct;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
+use App\Services\Inventory;
 use App\Support\StoreSettings;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
@@ -92,9 +93,11 @@ class ProductPageTest extends TestCase
 
     public function test_initial_gallery_order_alt_variants_and_no_photo_color(): void
     {
+        $this->product->update(['pkr_price_minor' => 100000]);
         $black = $this->product->colors()->create(['name' => 'Black', 'swatch_hex' => '#111111']);
         $brown = $this->product->colors()->create(['name' => 'Brown', 'swatch_hex' => '#664433']);
-        $black->variants()->create(['size' => 'XL', 'sku' => 'CBJ-BLK-XL', 'is_active' => true]);
+        $available = $black->variants()->create(['size' => 'XL', 'sku' => 'CBJ-BLK-XL', 'is_active' => true]);
+        app(Inventory::class)->adjust($available->id, 3, 'Gallery selection fixture', null);
         $black->variants()->create(['size' => 'SECRET-SIZE', 'sku' => 'HIDDEN-SKU', 'is_active' => false]);
         $brown->variants()->create(['size' => 'M', 'sku' => 'CBJ-BRN-M', 'is_active' => true]);
         $first = $black->addMedia(UploadedFile::fake()->image('front.jpg', 600, 800))->withCustomProperties(['alt' => 'Front zipper detail'])->toMediaCollection('gallery');

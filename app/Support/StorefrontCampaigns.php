@@ -27,7 +27,7 @@ final class StorefrontCampaigns
             $media->setRelation('model', $color);
         }
 
-        return ['product' => $product, 'color' => $color, 'photo' => $media ? ProductPhoto::data($media) : null, 'price' => str_replace('Price not configured', 'Currently unavailable', Pricing::range($product, $currency)), 'url' => route('products.show', [$product->slug, 'currency' => $currency, 'color' => $color?->id])];
+        return ['quick_color' => $featuredColor ?? $color?->id, 'product' => $product, 'color' => $color, 'photo' => $media ? ProductPhoto::data($media) : null, 'price' => str_replace('Price not configured', 'Currently unavailable', Pricing::range($product, $currency)), 'url' => route('products.show', [$product->slug, 'currency' => $currency, 'color' => $color?->id])];
     }
 
     public static function cover(Collection $collection, ?array $fallback = null): ?array

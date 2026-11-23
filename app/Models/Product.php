@@ -26,7 +26,8 @@ class Product extends Model implements HasMedia
         'is_active',
         'usd_price_minor',
         'pkr_price_minor',
-        'size_guide_id', 'size_guide_mode', 'size_guide_override', 'material', 'lining', 'fit', 'care',
+        'delivery_charge_minor',
+        'size_guide_id', 'size_guide_mode', 'size_guide_override', 'material', 'lining', 'fit', 'care', 'closure',
     ];
 
     protected function casts(): array

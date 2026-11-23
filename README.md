@@ -1,5 +1,77 @@
 # Leather Store
 
+## Reachable filters and live search - 22 November 2026
+
+Shop and collection pages now use a sticky left filter sidebar on desktop (1024px and wider). Its own scroll area keeps long size lists accessible. On smaller screens, a sticky Filters & sort bar opens a panel limited to 65% of the viewport; the rest of the catalog remains visible. Escape closes the panel and returns focus to its toggle. The short main navigation stays across the top on desktop and uses a collapsible, height-limited two-column menu on mobile. Filters remain native GET controls; no-JavaScript visitors can expand/collapse and submit them normally.
+
+Both search fields now offer up to six public product suggestions after two characters and a 250ms pause. Search code loads only on focus. Requests are cancelled when typing continues; outdated responses cannot replace newer suggestions. Arrow keys/Enter select a result; Escape dismisses suggestions; Enter without a highlighted result submits the original search form. Show results preserves the current collection/category and filter choices. Exact SKU suggestions retain the SKU's color/size in the product URL. No draft or inactive-category products are exposed.
+
+Verification: focused PHP checks cover publication, search matching/limits, unchanged cart/session state, exact-SKU links and shared sidebar markup; isolated Node interaction tests cover debounce, aborted/stale responses, keyboard selection and preserved collection filters. These Node tests are not a real browser visual check. Suggestions execute one SQL query for up to six matches; one-character input executes none. Listing queries remain 11 for both 1 and 12 cards with a warm settings cache. Production assets rebuilt; no migration or catalog write is required. Refresh /shop to load the new build. Mobile visual acceptance remains unverified.
+
+
+## Storefront filters and customer care - 22 November 2026
+
+Open [Shop](http://127.0.0.1:8000/shop) or the [demo shop](http://127.0.0.1:8001/shop). Filters now start as a compact toolbar, expanding into grouped category/color/size chips, price inputs, sorting and availability. Apply once with Show results; GET URLs, pagination and Back behavior remain. Closing the panel preserves unfinished choices locally. No per-keystroke requests or new library.
+
+WhatsApp now has a visible branded SVG icon and text beside product purchase controls, a floating help button and footer/contact links. Product inquiry buttons retain the selected color/size context. A blank WhatsApp number hides the links. The new responsive footer includes real category/collection links, Latest arrivals, Find my order and customer information pages: /about-us, /contact-us, /help, /privacy and /terms, alongside existing /delivery-and-returns. FAQs expose the existing size guide, quick add, restock alerts, order recovery and promotion workflows.
+
+Owner edits: **Settings > Store settings** for the store name, WhatsApp number, About story, optional contact address/support hours, privacy notice and ordering terms. Saves publish immediately and invalidate the public-settings cache. **Settings > Commerce settings** remains the source of contact email, payment options and delivery/returns policy. No business history, address, opening hours or return promises were invented. Default information pages describe existing shopping behavior; replace policy wording with your own approved text as needed.
+
+Reviewed the official public sites of [J.](https://www.junaidjamshed.com/pages/contact), [Outfitters](https://outfitters.com.pk/), [Breakout](https://www.breakout.com.pk/), [Almas](https://www.almas.pk/pages/faq) and [Engine](https://engine.com.pk/). Applied useful customer-care/footer, FAQ and category-browsing patterns. Existing Quick Add and measurement guidance were retained rather than duplicated. No competitor images, charts or policy promises were copied; no newsletter/account service was added.
+
+**Previous fit/Quick Add release:** measurements already supported authoritative units, body/garment methods and image-only guides. Size & fit now highlights the selected size, supplies method-specific guidance and keeps entered material/lining/fit beside sizes. Optional model height (cm) and size worn are entered in **Catalog > Products > Edit > Product colors > Model in this color gallery**. Both values and actual color photos are required for a caption. Quick Add loads one compact choices response only when opened, uses the existing cart action, retains listing position, and refreshes rejected stock/price choices without substituting a SKU. Its JavaScript is loaded on demand.
+
+The model-fit migration is applied in demo only. **Normal store:** from this project, run this additive migration before saving model fields (no fixtures are added):
+
+~~~powershell
+& 'C:\laragon\bin\php\php-8.4.12-nts-Win32-vs17-x64\php.exe' artisan migrate --path=database/migrations/2026_11_22_050136_add_model_fit_to_product_colors.php --no-interaction
+~~~
+
+**Demo:** no migration command needed. The filter/footer/information-page changes themselves need no migration. Production assets are built; refresh the browser to load the new build. Real catalog, media, orders and publication were preserved.
+
+Focused checks cover information-page links, escaped owner content, immediate cache invalidation, admin validation preserving input, configured contact visibility, exact product WhatsApp context, GET filters, bounded listing queries, fit/model details and Quick Add rejection paths. Listing query count is 11 for both 1 and 12 cards under the same warmed settings cache. Browser visual acceptance is still with the owner; Computer Use previously could not reliably identify the browser URL and was stopped.
+
+Manual checks:
+1. At phone width, open Filters & sort, choose size/color chips, apply and clear; return from a product using Back.
+2. Select a product color and size; check the visible WhatsApp button and its inquiry text.
+3. Open footer pages; enter your About text/contact details in Store settings and verify the public update.
+4. Compare M/L in Size & fit, then Quick Add an exact size from a filtered collection; check confirmation, cart count and unchanged listing position.
+
+
+## Owner workspace release - 22 November 2026
+
+This release completes the newer speed/storefront/owner-workspace brief. The older 80-item roadmap below remains historical; its deferred items are outside this release.
+
+Normal store: homepage, authenticated Purchase Orders and Promotions returned HTTP 200. Both normal and demo migration lists are fully applied, including purchasing, promotions, restock and SEO. The former missing-table errors were schema drift already corrected before this pass; no discount fallback was introduced. Normal catalog, orders, accounts, media and publication were not changed. **Normal store: no command needed. Demo: no command needed.** No migration, dependency change or asset build is required for these admin-only changes.
+
+Start at [demo dashboard](http://127.0.0.1:8001/admin), [demo product editor](http://127.0.0.1:8001/admin/products/6/edit), or [demo product](http://127.0.0.1:8001/products/demo-launch-jacket). Admin navigation is grouped into Catalog, Orders & shipping, Purchasing, Marketing, Storefront and Settings. Dashboard counts open matching filtered lists; Ready to pack excludes unpaid bank orders and pending cancellations. There is no polling.
+
+**Catalog > Products > Edit > Storefront readiness** now shows each color's size, purchasable-size and photo counts. Enter stock and Set PKR price open the relevant saved SKU, including from a blocker. Add sizes and Manage photos expand and scroll to the saved color locally. Stock fields distinguish physical/reserved/available; quantity preview updates when leaving the input. Stock/price actions save immediately while other form edits stay pending. A zero-price blocker defaults to Replace prices; it would otherwise be intentionally skipped by Fill missing. The size-row Receive stock action now supplies its Independent stock default correctly. Purchase deliveries still belong in Purchasing > Purchase orders > Receive delivery.
+
+The additional owner feature is **Catalog > Sizes needing attention > In stock, missing PKR price**: only active sizes in visible products, with available stock but no positive effective checkout price. Each row opens the exact SKU's pricing action. Launch readiness distinguishes store-wide setup from product information; missing photography is optional, and inventory/price findings link to matching lists. Category and collection forms explain their different purposes.
+
+Branding remains **Settings > Store settings > Store name** (header/footer/default metadata, immediate public-cache invalidation). **Storefront > Homepage** controls the hero: preview drafts and publish deliberately. Customer-facing menu, responsive photography, no-JS links, same-color galleries, disabled sold-out sizes, checkout revalidation and SEO are retained from the existing implementation.
+
+Measurements below are actual local HTTP-kernel requests against the same demo fixture (13 products, 12 visible), same asset build, array sessions, and no browser/network throttling. Public-branding cache warmth can add one query; its variation is not a new optimization. The editor improvement comes from replacing per-size fresh reads with a request-scoped batch, invalidated after saves. A focused 24-size regression confirms repeated stock reads require one query, not one query per row. No mobile latency claim is made.
+
+| Demo route | Before SQL queries | After SQL queries |
+| --- | ---: | ---: |
+| /shop | 12 | 11 |
+| /products/demo-launch-jacket | 10 | 10 |
+| /admin/products/6/edit | 48 | 24-25 |
+
+Shop/product HTML remains 32,915 / 33,143 bytes. Editor HTML grew from 569,770 to 602,104 bytes with the new owner controls; public bundles are unchanged. Dashboard and sizes-needing-attention also rendered HTTP 200 against demo MySQL.
+
+Focused verification passed: OwnerWorkspaceTest, StockBatchAvailabilityTest, VariantPricingTest, AddProductSizesTest, ProductVariantSaveTest, ProductUsabilityTest, DispatchSettlementTest, StorefrontLaunchTest and StorefrontRefreshTest (33 tests across these files). These cover batch reads/invalidation, exact filtered destinations/permissions, unsaved text, stock and price previews, stale stock, reservations, immediate double save with existing photos, size copying/SKUs, branding, and the cart/COD/order-recovery journey. Pint applied. Browser host remains unavailable; touch, keyboard and final visual acceptance are not claimed.
+
+Owner acceptance (use demo for trial stock/order changes):
+1. In a product editor, follow Black/M's blocker to enter stock and PKR price; inspect the preview and save. Other pending product text should remain.
+2. On a phone, select Black/M and add it to cart. Black/L uses the same gallery; a sold-out size stays crossed out and disabled. The automated regression uses Classic Biker Jacket; the existing demo is named DEMO Launch Jacket.
+3. Open Add sizes and Manage photos from each color summary; save a new size and immediately save again with its color photo intact.
+4. Open dashboard counts and the stocked/missing-price list; check that each shows the matching records and SKU action.
+5. Change the demo store name, preview a draft hero, then publish; verify the name and hero remain independent.
+
+
 ## Master roadmap milestone - 22 November 2026
 
 Start at http://127.0.0.1:8001/collections/demo-launch-jackets. First admin screen: http://127.0.0.1:8001/admin/products/6/edit (DEMO Launch Jacket); expand **Search and sharing** to try the new metadata controls. Normal catalog, prices, stock, publication, credentials and uploads were preserved.
@@ -788,3 +860,65 @@ Deployment: the additive restock_subscriptions migration is applied to **both de
 For the demo after a restart, use the same command with `--env=demo`. A worker consuming only the default queue will not consume restock jobs. Configure the normal mail transport when ready for actual customer delivery; the current local log transport does not deliver to inboxes.
 
 Focused verification: 6 tests / 77 assertions cover exact variants, confirmation/cancellation POST safety, repeat submission/job retry, stock disappearing, reservation release after commit/rollback, failed transport handoff, pricing/publication guards and permission-controlled aggregated demand. Public product rendering performs **zero subscriber-table queries**. Product-only JavaScript grew by about 0.7 kB before gzip; no new library or public polling was added. Visual browser acceptance remains with the owner. Database row locks, completed timestamps and stable message IDs prevent ordinary retry duplicates; an SMTP acceptance followed by a process crash before the database commit remains a mail-transport ambiguity, as with existing order notifications.
+
+
+### Admin redesign - Section 1 (isolated demo)
+
+Open http://127.0.0.1:8001/admin/products/14/edit (Catalog > Products > Classic Biker Jacket). This is a separate fixture, not the normal catalog jacket. Black/M has opening stock; S has never had stock entered; L is sold out; XXL needs a PKR price. The guarded AdminEditorDemoSeeder only writes to leather_store_demo with the demo media disk and does not reset existing fixture edits.
+
+The admin uses the available width, native collapsible navigation, global search, user menu and existing amber primary actions. Orders & customers retains dispatch, settlements and the existing order URLs. Analytics navigation becomes populated in Section 4; the personal PKR/USD/Both top-bar preference is scheduled for Section 3. Both independent prices remain editable and are never converted by this redesign.
+
+Product editing: name and Active/Draft control appear above General, Pricing, Colors & sizes, Photos, SEO & sharing, and Size guide tabs. Native tabs keep form state in place. Readiness is a saved snapshot with a grouped, expandable checklist. Open Colors & sizes > Black > M for effective prices, on-hand/reserved/available stock, status, Manage price and Manage stock. Color galleries are collapsed within their color and linked from Photos, avoiding duplicate relationship forms. Sizes continue to share color photos. Product tools contains Move shared photo and reorder settings; deletion is under More.
+
+Save changes / Cancel uses Filament's sticky edit actions. Pending-change status and navigation warnings use Filament's saved-data baseline. Stock and price dialogs save on their own confirmation; fields in the main form are staged. Preview shows saved data. Creation suggests a slug; custom slugs and existing published URLs survive name changes. Existing explicit slug changes retain the redirect workflow.
+
+Checks: focused PHP tests cover slug preservation, independent USD preservation during PKR edits, validation retaining staged values, readiness, photo placement, size additions and the SKU/photo double-save regression. The authenticated demo editor returns HTTP 200. Desktop/phone tab focus, sticky-bar clearance and visual acceptance still need browser checks; the connected browser host was unavailable. No Section 1 migration or normal-store command is required.
+
+Try: (1) find Black/M and open Manage stock; (2) compare S, L and XXL status labels; (3) change a description, switch tabs, then Save changes or Cancel. Approve Section 1 before proceeding to inventory cleanup in Section 2.
+
+Section 1 visual refinement: fixed malformed tab attributes that exposed JavaScript as text and displayed every panel together. A DOM regression now checks that the editor has one valid tab container holding six panels. Added native tab icons, grouped Price & stock shortcuts, quieter readiness messaging, and a product workspace that uses the available width beside navigation. Existing data and workflows remain unchanged.
+
+Further Section 1 polish: product identity and readiness sit side by side on large desktops and stack on phones. Stronger headings, 44px inputs, clearer active tabs, currency prefixes, and borderless inner SEO/size-guide sections reduce visual clutter. Focused editor/tab/price-preservation and SKU/photo tests pass; browser visual acceptance remains outstanding.
+
+Homepage UI refresh: forest-green/ivory hero with a warm-gold shopping action; existing category shortcuts and Latest arrivals; compact fixed-column product cards with no name-to-price spacer; customer-care links above the footer. Published hero/copy and catalog records are preserved. No migration, external font, new image or JavaScript dependency. Demo: http://127.0.0.1:8001/. Browser visual acceptance remains outstanding.
+
+
+### Focused shopper release - Pakistan orders and international inquiries
+
+Choose Delivering to Pakistan (PKR) or International (USD inquiry) in the storefront market bar. Product-page market links preserve the current color/size. Once chosen, the delivery market controls card, collection and product prices; a currency-only link cannot override it. Existing independently entered prices and variant overrides remain intact. International cards open the product selection instead of Pakistan Quick Add. Pakistan checkout accepts only PK delivery and PKR payment; an international-market session is redirected to its inquiry before checkout.
+
+International: choose an available exact size, set quantity, and Add to inquiry. Add another jacket, enter the delivery country, and Update inquiry & shipping estimate. The WhatsApp action contains the jacket/color/size/SKU, quantity, independent USD price, destination, merchandise and applicable shipping estimate. No order, payment or inventory reservation is created. Quantity zero removes a line; unavailable/deleted sizes block sending until corrected. Missing WhatsApp configuration provides a copyable message and Contact us. Shipping and prices are estimates until confirmed by the owner.
+
+Owner path: Admin > Settings > Commerce settings > International inquiry shipping (USD). Choose Included, Charged separately, or Request a shipping quote. Separate destination rates use country names matched without case sensitivity and an explicit Order or Jacket basis. An order fee applies once across all items; included shipping adds zero; unmatched or missing destinations show Request a shipping quote. No default USD 60 fee, conversion, or live rate service is used. The normal store defaults safely to quote until you configure its terms yourself.
+
+Admin product price view: top bar > Price view > PKR / USD / Both. This is a browser-local preference keyed to the signed-in admin, not a conversion or data edit. It only hides field wrappers: pending values remain in the same form and are saved together. A validation error reveals Both so a hidden invalid value is reachable. Different browsers maintain their own viewing preferences.
+
+Existing ordered color galleries, size guide and larger-image controls remain. Size changes do not replace the gallery or request images; color changes use the matching existing gallery. Sold-out sizes stay disabled and discontinued sizes remain excluded. Pakistan checkout now retains contact/address details in the private session across a stock-error/cart-correction round trip, clearing them on successful order completion. Existing server stock checks, total review, COD/bank status and retry deduplication remain authoritative.
+
+Demo URLs:
+- http://127.0.0.1:8001/products/demo-journey-biker?market=pakistan
+- http://127.0.0.1:8001/products/demo-journey-biker?market=international
+- http://127.0.0.1:8001/products/demo-journey-windbreaker?market=international
+- http://127.0.0.1:8001/inquiry
+
+Guarded ShopperJourneyDemoSeeder wrote only isolated demo products and demo international terms: each jacket is USD 150, United Kingdom shipping is a fictional USD 25 per order, so two jackets estimate USD 325. Other countries require a quote. Black/Brown M/L are stocked, XL is sold out. This fixture does not represent real prices or shipping promises. No normal migration or command is required. Focused checks cover the three shopper workflows, included/separate shipping arithmetic, market enforcement, hidden-value preservation, and the existing SKU/photo double-save regression. Final visual acceptance is left to the owner as requested.
+
+Cart/checkout clarity: Update quantity is enabled only after changing a quantity when JavaScript is available; native submission remains available without it. Proceed to checkout explains the address/payment step. Cart and checkout show a quiet Pakistan/PKR label instead of market-switch links. Contact/address fields now remain visible even when shipping, tax, payment configuration or stock prevents checkout; unavailable totals never produce a Place order button. Normal settings were inspected read-only: shipping and tax are unset and COD/bank disabled. Actual normal-store rates and payment activation still require owner values and approval; none were invented or saved.
+
+Cart quantities now submit automatically after a 700ms typing pause or a committed change, using the existing server stock checks. The Update quantity button remains a no-JavaScript fallback. Proceed to checkout can first save a changed quantity. Checkout uses plain customer wording and omits market messaging from its header/footer. On the owner's explicit request, normal-store COD was enabled and bank transfer disabled; shipping/tax values were preserved unset pending owner input. When COD is the only available method it is selected automatically. No catalog, orders or migrations changed.
+
+Delivery is controlled in Admin > Settings > Commerce settings > Pakistan checkout rules > Delivery charges: choose Free delivery or Fixed delivery charge, enter the rate when fixed, set tax (explicit 0 if applicable), then Save checkout and service rules. Not configured deliberately keeps ordering unavailable. Changing the selector stages the choice; it does not change customer totals until saved.
+
+Checkout setup guidance: if missing delivery/tax/payment settings block checkout, shoppers see a store-contact action instead of instructions to change their cart. Signed-in authorized owners also get a direct Commerce settings link. The owner elected to configure normal delivery and tax values personally; they remain unset, so ordering intentionally remains unavailable until those settings are saved. COD remains enabled.
+
+Checkout readiness now gates public buying controls: products use Contact us to order and carts omit Proceed to checkout until a delivery policy and usable payment method exist. Direct checkout links show one contact notice rather than a disabled form. Owner setup instructions are confined to admin, which shows the saved Live/Not live checkout status. Tax is removed from new checkout calculations and the admin form; historical order/payment/refund records remain unchanged. Free delivery must still be selected intentionally in admin; no normal-store delivery values were changed.
+
+Admin size-row presentation: Sizes & availability now uses aligned expandable summaries with a size tile, SKU, separate PKR/USD prices, saved stock balances and text status badges. Rows stack on phones and honor the existing admin price-view preference. Saved values are explicitly labeled so they are not confused with pending edits. Stock/price actions, relationship saving and galleries are unchanged.
+
+## Dashboard traffic and quicker product fixes - 23 November 2026
+
+Admin > Dashboard now shows 14-day public page-request and order graphs plus referral websites, pages, device categories, operating systems and browsers. These are aggregate requests, not unique people or conversion rates; order counts include all statuses. No IP addresses, visitor IDs, full user agents, query strings or private shopping URLs are stored. Staff, known bots and DNT/GPC requests are excluded. Aggregates are pruned after 90 days by the existing Laravel scheduler (`analytics:prune` runs daily); keep the scheduler running. The dashboard refreshes its cached data after at most one minute. Device detection is approximate. The new traffic migration is applied only in the demo until the owner approves normal-store migration.
+
+Products > Edit > Colors & sizes: collapsed saved rows now have Fix / edit price and Fix / edit stock actions, scoped to the selected SKU. The existing confirmation, inventory audit and pending-edit protection remain. Product pages display configured delivery terms beside the buying controls. Assisted-sale review uses the same product-delivery calculation as checkout. Draft previews no longer show footer WhatsApp links.
+
+Isolated acceptance fixture: http://127.0.0.1:8001/products/demo-workflow-jacket (use `?market=international` for USD), http://127.0.0.1:8001/admin/products/17/edit and http://127.0.0.1:8001/admin/orders/11. The demo order contains two jackets with a PKR 24,250 total; its customer and address are fictional. Black/XL deliberately has stock and a zero PKR price for the row-fix exercise. Brown is sold out. Test traffic sources such as demo.example.test are simulated HTTP requests, not actual customers. No real messages or shipments were sent. Browser visual acceptance remains outstanding.

@@ -96,7 +96,7 @@ class VariantPricingTest extends TestCase
         $this->assertSame(1850000, (int) ProductVariant::where('sku', 'BROWN-M')->first()->pkr_price_minor);
         $this->assertSame(1850000, (int) $order->lines()->first()->unit_price_minor);
         $this->assertSame(1850000, (int) $order->fresh()->total_minor);
-        $this->get(route('products.show', $this->product).'?color='.$variant->product_color_id.'&size=M')->assertOk()->assertSee('PKR 19000.50');
+        $this->get(route('products.show', $this->product).'?color='.$variant->product_color_id.'&size=M')->assertOk()->assertSee('PKR 19,000.50');
         $this->assertSame(1900050, app(Cart::class)->quote([$variant->id => 1], 'PKR')['subtotal']);
         $plan = $service->preview($this->product, $this->black(), 'PKR', 'replace', '21000');
         $variant->update(['pkr_price_minor' => 1950000]);
@@ -141,7 +141,7 @@ class VariantPricingTest extends TestCase
         $page->callMountedAction()->assertNotified('Review prices')->assertSet('data.description', 'Keep while reviewing conflict');
         $this->assertSame(11000, (int) $variant->fresh()->usd_price_minor);
         $page->call('mountAction', 'previewPrices', [], ['schemaComponent' => 'mountedActionSchema0']);
-        $this->assertStringContainsString('USD 110.00 -> USD 120.25', $page->get('mountedActions.0.data.preview'));
+        $this->assertStringContainsString('USD 110 -> USD 120.25', $page->get('mountedActions.0.data.preview'));
         $page->callMountedAction()->assertNotified('Updated 1 USD prices; skipped 0 existing or unchanged prices');
         $this->assertSame(12025, (int) $variant->fresh()->usd_price_minor);
         $this->assertSame(1850000, (int) $variant->fresh()->pkr_price_minor);

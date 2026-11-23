@@ -27,6 +27,8 @@ use Illuminate\Validation\Rule;
 
 class CollectionResource extends Resource
 {
+    protected static string|\UnitEnum|null $navigationGroup = 'Storefront';
+
     protected static ?string $model = Collection::class;
 
     protected static ?string $recordTitleAttribute = 'title';
@@ -55,7 +57,7 @@ class CollectionResource extends Resource
     {
         return $schema->components([
             SeoFields::section('title', 'introduction'),
-            TextInput::make('title')->required()->maxLength(160)->live(onBlur: true)->afterStateUpdated(function (?string $state, ?string $old, Get $get, Set $set, ?Collection $record): void {
+            TextInput::make('title')->helperText('A curated selection, such as Winter Picks. Add selected products or colors from any category.')->required()->maxLength(160)->live(onBlur: true)->afterStateUpdated(function (?string $state, ?string $old, Get $get, Set $set, ?Collection $record): void {
                 if (! $record && (! $get('slug') || $get('slug') === Str::slug($old ?? ''))) {
                     $set('slug', Str::slug($state ?? ''));
                 }

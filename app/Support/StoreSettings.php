@@ -24,6 +24,18 @@ final class StoreSettings
         self::forgetPublicValues();
     }
 
+    public static function pages(): array
+    {
+        return array_replace(['about' => '', 'address' => '', 'hours' => '', 'privacy' => '', 'terms' => ''], json_decode(self::publicValues()['public_pages'] ?? '{}', true, 512, JSON_THROW_ON_ERROR));
+    }
+
+    public static function savePages(array $pages): void
+    {
+        $validated = validator($pages, ['about' => 'nullable|string|max:6000', 'address' => 'nullable|string|max:500', 'hours' => 'nullable|string|max:500', 'privacy' => 'nullable|string|max:12000', 'terms' => 'nullable|string|max:12000'])->validate();
+        DB::table('store_settings')->upsert([['key' => 'public_pages', 'value' => json_encode($validated, JSON_THROW_ON_ERROR)]], ['key'], ['value']);
+        self::forgetPublicValues();
+    }
+
     public static function brandName(): string
     {
         return self::publicValues()['brand_name'] ?? config('store.brand_name');
@@ -37,7 +49,7 @@ final class StoreSettings
         if ($memoize && $attributes->has('store_public_settings')) {
             return $attributes->get('store_public_settings');
         }
-        $values = Cache::store(self::cacheStore())->remember(self::cacheKey(), 300, fn () => DB::table('store_settings')->whereIn('key', ['brand_name', 'whatsapp_number'])->pluck('value', 'key')->all());
+        $values = Cache::store(self::cacheStore())->remember(self::cacheKey(), 300, fn () => DB::table('store_settings')->whereIn('key', ['brand_name', 'whatsapp_number', 'public_pages'])->pluck('value', 'key')->all());
         if ($memoize) {
             $attributes->set('store_public_settings', $values);
         }

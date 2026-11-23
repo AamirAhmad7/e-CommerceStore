@@ -30,7 +30,7 @@ final class Promotions
             $text .= ' Maximum discount '.Pricing::format($p->cap_minor).'.';
         }
 
-return $text.' PKR checkout only; one offer per order.';
+        return $text.' PKR checkout only; one offer per order.';
     }
 
     public function candidates(?string $code = null, bool $lock = false): Collection
@@ -138,7 +138,7 @@ return $text.' PKR checkout only; one offer per order.';
 
     public function resolve(array $quote, array $settings, ?string $code = null, bool $lock = false, ?Promotion $preview = null): array
     {
-        $base = CommerceSettings::totals($quote['subtotal'], $settings);
+        $base = CommerceSettings::totals($quote['subtotal'], CommerceSettings::forQuote($quote, $settings));
         $offers = $preview ? collect([$preview]) : $this->candidates($code, $lock);
         $members = $this->memberships($quote['lines'], $offers);
         $best = ['totals' => $base, 'saving' => 0, 'snapshot' => null, 'lines' => [], 'error' => null];
@@ -217,6 +217,6 @@ return $text.' PKR checkout only; one offer per order.';
         }
         $tax = $order->subtotal_minor ? BigInteger::of($order->tax_minor)->multipliedBy($gross)->quotient($order->subtotal_minor)->toInt() : 0;
 
-        return min($order->total_minor,$net + $tax + ($all ? $order->shipping_minor : 0));
+        return min($order->total_minor, $net + $tax + ($all ? $order->shipping_minor : 0));
     }
 }

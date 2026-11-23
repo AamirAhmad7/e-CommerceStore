@@ -7,6 +7,7 @@ use App\Models\Collection;
 use App\Models\Product;
 use App\Services\Inventory;
 use App\Services\Pricing;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,21 @@ use Illuminate\Support\Str;
 
 final class CatalogDiscovery
 {
+    public static function search(Builder $base, string $term): void
+    {
+        $base->where(function ($q) use ($term): void {
+            $q->whereRaw('LOWER(products.name) = ?', [$term])->orWhereHas('variants', fn ($v) => $v->where('product_variants.is_active', true)->whereRaw('LOWER(sku) = ?', [$term]));
+            $q->orWhere(function ($words) use ($term): void {
+                foreach (explode(' ', $term) as $word) {
+                    $like = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $word).'%';
+                    $words->where(function ($part) use ($like): void {
+                        $part->whereHas('variants', fn ($variant) => $variant->where('product_variants.is_active', true)->whereRaw("LOWER(sku) LIKE ? ESCAPE '!'", [$like]))->orWhereRaw("LOWER(products.name) LIKE ? ESCAPE '!'", [$like])->orWhereRaw("LOWER(products.description) LIKE ? ESCAPE '!'", [$like])->orWhereHas('category', fn ($c) => $c->whereRaw("LOWER(name) LIKE ? ESCAPE '!'", [$like]))->orWhereHas('colors', fn ($c) => $c->whereRaw("LOWER(name) LIKE ? ESCAPE '!'", [$like])->whereHas('variants', fn ($v) => $v->where('is_active', true)));
+                    });
+                }
+            });
+        });
+    }
+
     /** @return array{products: LengthAwarePaginator, cards: \Illuminate\Support\Collection, categories: \Illuminate\Support\Collection, colors: \Illuminate\Support\Collection, sizes: \Illuminate\Support\Collection, filters: array, chips: array, clearUrl: string, currency: string, sort: string, noindex: bool} */
     public function browse(Request $request, ?Category $category = null, ?Collection $collection = null): array
     {
@@ -59,7 +75,7 @@ final class CatalogDiscovery
         }
         $price = "COALESCE(v.$field,p.$field)";
         if (! empty($filters['in_stock'])) {
-            $variants->whereRaw('('.Inventory::availableSql('v').') > 0')->whereRaw('COALESCE(v.pkr_price_minor,p.pkr_price_minor) > 0')->whereRaw("$price > 0");
+            $variants->whereRaw('('.Inventory::availableSql('v').') > 0')->whereRaw("$price > 0");
         }
         foreach (['min' => '>=', 'max' => '<='] as $key => $operator) {
             if (isset($filters[$key])) {
@@ -71,19 +87,9 @@ final class CatalogDiscovery
         }
         $base->whereIn('products.id', (clone $variants)->select('c.product_id'));
         if ($term !== '') {
-            $base->where(function ($q) use ($term): void {
-                $q->whereRaw('LOWER(products.name) = ?', [$term])->orWhereHas('variants', fn ($v) => $v->where('product_variants.is_active', true)->whereRaw('LOWER(sku) = ?', [$term]));
-                $q->orWhere(function ($words) use ($term): void {
-                    foreach (explode(' ', $term) as $word) {
-                        $like = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $word).'%';
-                        $words->where(function ($part) use ($like): void {
-                            $part->whereRaw("LOWER(products.name) LIKE ? ESCAPE '!'", [$like])->orWhereRaw("LOWER(products.description) LIKE ? ESCAPE '!'", [$like])->orWhereHas('category', fn ($c) => $c->whereRaw("LOWER(name) LIKE ? ESCAPE '!'", [$like]))->orWhereHas('colors', fn ($c) => $c->whereRaw("LOWER(name) LIKE ? ESCAPE '!'", [$like])->whereHas('variants', fn ($v) => $v->where('is_active', true)));
-                        });
-                    }
-                });
-            });
+            self::search($base, $term);
         }
-        $base->select(['products.id', 'products.category_id', 'products.name', 'products.slug', 'products.pkr_price_minor', 'products.usd_price_minor'])->selectSub((clone $variants)->whereColumn('c.product_id', 'products.id')->selectRaw("MIN(CASE WHEN $price > 0 THEN $price END)"), 'sort_price');
+        $base->select(['products.id', 'products.category_id', 'products.name', 'products.slug', 'products.created_at', 'products.delivery_charge_minor', 'products.pkr_price_minor', 'products.usd_price_minor'])->selectSub((clone $variants)->whereColumn('c.product_id', 'products.id')->selectRaw("MIN(CASE WHEN $price > 0 THEN $price END)"), 'sort_price');
         $sort = $filters['sort'] ?? ($term !== '' ? 'relevance' : ($collection ? 'curated' : 'newest'));
         if ($sort === 'relevance' && $term !== '') {
             $base->orderByRaw('CASE WHEN EXISTS (SELECT 1 FROM product_variants sv JOIN product_colors sc ON sc.id=sv.product_color_id WHERE sc.product_id=products.id AND sv.is_active=1 AND LOWER(sv.sku)=?) THEN 0 WHEN LOWER(products.name)=? THEN 1 WHEN LOWER(products.name) LIKE ? THEN 2 ELSE 3 END', [$term, $term, '%'.$term.'%']);
@@ -103,13 +109,17 @@ final class CatalogDiscovery
             $exactColor = $product->colors->first(fn ($c) => $c->variants->contains(fn ($v) => mb_strtolower($v->sku) === $term));
             $color = $exactColor ?? $product->colors->first(fn ($c) => $term !== '' && mb_strtolower($c->name) === $term) ?? $product->colors->firstWhere('id', $product->featured_color_id) ?? ProductPresentation::preferredColor($product, $currency);
             $card = StorefrontCampaigns::card($product, $currency, $color?->id);
+            if ($product->featured_color_id && empty($filters['color']) && ! $exactColor) {
+                $card['quick_color'] = $product->featured_color_id;
+                $card['quick_url'] = route('products.show', [$product->slug, 'currency' => $currency, 'color' => $product->featured_color_id]);
+            }
             $variant = $exactColor?->variants->first(fn ($v) => mb_strtolower($v->sku) === $term);
             if (! $variant && count($filters['size'] ?? []) === 1) {
                 $variant = $color?->variants->firstWhere('size', $filters['size'][0]);
             }
             if ($variant) {
                 $card['url'] = route('products.show', [$product->slug, 'currency' => $currency, 'color' => $color->id, 'size' => $variant->size]);
-                $card['detail'] = $variant->size.' - '.(Inventory::purchasable($variant, $currency, $product) ? 'In stock' : 'Currently unavailable');
+                $card['detail'] = $variant->size.' - '.(($variant->is_active && Inventory::available($variant) > 0 && Pricing::resolve($variant, $currency, $product) > 0) ? 'In stock' : 'Currently unavailable');
                 if ($exactColor) {
                     $card['price'] = Pricing::format(Pricing::resolve($variant, $currency, $product), $currency);
                     $card['detail'] = $variant->sku.' - '.$card['detail'];

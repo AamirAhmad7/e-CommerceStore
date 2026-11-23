@@ -11,6 +11,7 @@ use App\Models\Homepage;
 use App\Models\Product;
 use App\Models\User;
 use App\Services\Inventory;
+use App\Support\StorefrontAnalytics;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
 use Illuminate\Database\QueryException;
@@ -41,6 +42,7 @@ class CollectionHomepageTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
+        StorefrontAnalytics::available();
         Queue::fake();
         Storage::fake(config('store.media_disk'));
         config(['app.url' => 'https://store.example.test']);
@@ -89,9 +91,9 @@ class CollectionHomepageTest extends TestCase
         $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
         $this->assertFalse($c->fresh()->is_published);
         $c->update(['is_published' => true]);
-        $response = $this->get(route('collections.show', $c->slug).'?utm_source=whatsapp&currency=USD')->assertOk()->assertSee('USD 25.00');
+        $response = $this->get(route('collections.show', $c->slug).'?utm_source=whatsapp&currency=USD')->assertOk()->assertSee('USD 25');
         $this->assertSame('https://store.example.test/collections/biker-jackets', $response->viewData('canonical'));
-        $response->assertSee('data-share-url="https://store.example.test/collections/biker-jackets"', false)->assertSee('property="og:title" content="Biker Jackets"', false)->assertSee('Hand-picked jackets.');
+        $response->assertSee('data-share-url="https://store.example.test/collections/biker-jackets"', false)->assertSee('property="og:title" content="Biker Jackets | Sialkot Fashion"', false)->assertSee('Hand-picked jackets.');
         $this->assertSame($photo->id, $response->viewData('cover')['id']);
         config(['app.env' => 'production']);
         $this->get(route('collections.preview', $c->slug))->assertForbidden();
@@ -245,7 +247,7 @@ class CollectionHomepageTest extends TestCase
             ->call('publish')->assertHasNoFormErrors()->assertNotified('Homepage published');
         $home = Homepage::sole();
         $this->assertNotNull($home->published['hero_media_id']);
-        $page->set('data.headline','Changed draft')->call('saveDraft')->assertHasNoFormErrors();
+        $page->set('data.headline', 'Changed draft')->call('saveDraft')->assertHasNoFormErrors();
         $this->get('/')->assertSee('Uploaded campaign')->assertDontSee('Changed draft')->assertSee('Demo hero');
         $this->get(route('home.preview'))->assertSee('Changed draft');
     }

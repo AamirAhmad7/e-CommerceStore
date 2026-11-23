@@ -32,6 +32,8 @@ use Illuminate\Validation\ValidationException;
 
 class AssistedSaleResource extends Resource
 {
+    protected static string|\UnitEnum|null $navigationGroup = 'Orders & customers';
+
     protected static ?string $model = AssistedSale::class;
 
     protected static ?string $recordTitleAttribute = 'reference';

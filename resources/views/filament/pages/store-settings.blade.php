@@ -1,5 +1,5 @@
 <x-filament-panels::page>
-    <form wire:submit="save">
+    <form wire:submit="save" class="sf-admin-settings">
         <x-filament::section>
             <div>
                 <label for="brand-name">Store name</label>
@@ -32,6 +32,16 @@
                 <div id="whatsapp-number-error" aria-live="polite">@error('whatsappNumber')<p>{{ $message }}</p>@enderror</div>
             </div>
 
+            <div style="display:grid;gap:1rem;margin-top:2rem">
+                <h2>Public information pages</h2>
+                <p>Save publishes these words immediately. Use your own story and approved policies. Leave optional address and hours blank to hide them. Contact email is managed in Commerce settings.</p>
+                @foreach(['about' => 'About us', 'address' => 'Customer contact address (optional)', 'hours' => 'Support hours (optional)', 'privacy' => 'Privacy notice', 'terms' => 'Ordering terms'] as $key => $label)
+                    <label for="page-{{ $key }}">{{ $label }}
+                        <textarea id="page-{{ $key }}" wire:model="pages.{{ $key }}" rows="{{ in_array($key, ['address', 'hours']) ? 2 : 5 }}" maxlength="{{ in_array($key, ['address', 'hours']) ? 500 : ($key === 'about' ? 6000 : 12000) }}" style="display:block;width:100%;border:1px solid #aaa;border-radius:8px;padding:.75rem"></textarea>
+                        @error('pages.'.$key)<span role="alert">{{ $message }}</span>@enderror
+                    </label>
+                @endforeach
+            </div>
             <x-slot name="footer">
                 <x-filament::button type="submit">
                     Save
@@ -40,3 +50,4 @@
         </x-filament::section>
     </form>
 </x-filament-panels::page>
+

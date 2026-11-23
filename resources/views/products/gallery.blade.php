@@ -3,10 +3,11 @@
     @php($first = $photos[0])
     <figure class="gallery-main">
         <a class="large-photo" href="{{ $first['original'] }}" target="_blank" rel="noopener" aria-label="Open larger image of {{ $color['name'] }} in a new tab">
-            <img class="main-photo" src="{{ $first['src'] }}" @if($first['srcset']) srcset="{{ $first['srcset'] }}" @endif sizes="(min-width: 900px) 55vw, 100vw" width="{{ $first['width'] }}" height="{{ $first['height'] }}" alt="{{ $first['alt'] }}" fetchpriority="high" loading="eager">
+            <img class="main-photo" src="{{ $first['src'] }}" @if($first['srcset']) srcset="{{ $first['srcset'] }}" @endif sizes="(min-width: 900px) 55vw, 100vw" width="{{ $first['width'] }}" height="{{ $first['height'] }}" alt="{{ $first['alt'] ?: $color['name'].' jacket' }}" fetchpriority="high" loading="eager">
         </a>
         <figcaption><span class="photo-count">1 / {{ count($photos) }}</span><span>Open image for a closer look</span></figcaption>
     </figure>
+    @if($color['model_caption'] ?? null)<p class="model-fit-caption">{{ $color['model_caption'] }}</p>@endif
     <nav class="thumbnails" aria-label="{{ $color['name'] }} photos">
         @foreach($photos as $photo)
             <a href="{{ $photo['original'] }}" target="_blank" rel="noopener" data-photo="{{ $loop->index }}" aria-label="View {{ $photo['purpose'] ?? $color['name'].' photo '.$loop->iteration }}{{ $photo['alt'] ? ': '.$photo['alt'] : '' }}" @if($loop->first) aria-current="true" @endif>

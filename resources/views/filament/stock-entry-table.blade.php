@@ -14,7 +14,7 @@
                     <td style="padding:.5rem">{{ $stock['on_hand'] ?? 'Not configured' }}</td>
                     <td style="padding:.5rem">{{ $stock['reserved'] }}</td>
                     <td style="padding:.5rem">{{ max(0, (int)$stock['on_hand'] - $stock['reserved']) }}</td>
-                    <td style="padding:.5rem"><input type="number" min="0" max="1000000" step="1" style="width:7rem;border:1px solid currentColor;border-radius:.25rem;padding:.4rem" aria-label="Quantity for {{ $color->name }} / {{ $variant->size }} / {{ $variant->sku }}" wire:model.live.debounce.300ms="{{ $stateRoot }}.rows.{{ $variant->id }}.quantity" @if((int)$focus === $variant->id) autofocus @endif></td>
+                    <td style="padding:.5rem"><input type="number" min="0" max="1000000" step="1" style="width:7rem;border:1px solid currentColor;border-radius:.25rem;padding:.4rem" aria-label="Quantity for {{ $color->name }} / {{ $variant->size }} / {{ $variant->sku }}" wire:model.blur="{{ $stateRoot }}.rows.{{ $variant->id }}.quantity" @if((int)$focus === $variant->id) autofocus @endif></td>
                     <td style="padding:.5rem">
                         @if(App\Services\Pricing::resolve($variant, 'PKR', $product) > 0)
                             {{ $variant->pkr_price_minor === null ? 'Inherited product price' : 'Variant price configured' }}
