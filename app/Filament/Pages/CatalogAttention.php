@@ -44,7 +44,7 @@ class CatalogAttention extends Page implements HasTable
             ->columns([
                 TextColumn::make('productColor.product.name')->label('Product')->searchable(),
                 TextColumn::make('productColor.name')->label('Color'),
-                TextColumn::make('size'), TextColumn::make('sku')->searchable(),
+                TextColumn::make('size')->formatStateUsing(fn (string $state): string => strtoupper($state))->badge(), TextColumn::make('sku')->searchable(),
                 TextColumn::make('on_hand')->label('Physical')->placeholder('Not configured'),
                 TextColumn::make('reserved')->label('Reserved'),
                 TextColumn::make('available')->state(fn (ProductVariant $record): int => Inventory::available($record)),

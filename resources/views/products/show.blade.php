@@ -21,6 +21,8 @@
 
                 <p id="selected-price">{{ $selectedVariant['price_label'] ?? ($selected['price_label'] ?? 'Currently unavailable') }}</p>
                 
+                @include('products.save', ['saveProduct' => $product])
+                @unless($preview)<div class="product-share"><button class="button-secondary" type="button" data-copy-product aria-describedby="share-help" hidden>Copy link to share</button><p id="share-help" class="share-help" data-share-help hidden>Share this jacket with your selected color and size.</p><p data-share-status role="status"></p><input data-share-fallback aria-label="Product link: select and copy" readonly hidden></div>@endunless
                 <div class="selection-block">
                     <h2>Color <span id="color-name">{{ $selected['name'] ?? 'No colors listed' }}</span></h2>
                     @if($colorUnavailable)<p role="status">That color is not currently offered. Choose a color and an available size.</p>@endif

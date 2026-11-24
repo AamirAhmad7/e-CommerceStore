@@ -1,7 +1,10 @@
 <?php
 
+use App\Jobs\OperationsHeartbeat;
+use App\Support\OperationsHealth;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Schema;
@@ -18,3 +21,12 @@ Schedule::command('analytics:prune')->daily()->withoutOverlapping();
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
+
+Schedule::call(function (): void {
+    Cache::store('file')->put(OperationsHealth::key('scheduler'), now()->timestamp, now()->addDay());
+    OperationsHeartbeat::dispatch()->onConnection('database')->onQueue('default');
+})->name('operations-heartbeat')->everyFiveMinutes()->withoutOverlapping();
+
+if (config('store.local_backup_enabled')) {
+    Schedule::command('store:backup')->dailyAt('02:00')->timezone(config('store.timezone'))->withoutOverlapping();
+}

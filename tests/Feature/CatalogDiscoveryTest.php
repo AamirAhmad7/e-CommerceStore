@@ -120,4 +120,32 @@ class CatalogDiscoveryTest extends TestCase
         $this->get('/shop?color[]=Brown&size[]=M&in_stock=1&page=2')->assertViewHas('cards', fn ($cards) => $cards->count() === 1);
         fwrite(STDOUT, "\nDiscovery queries: 1 card=$small, 12 cards=$full\n");
     }
+
+    public function test_editorial_cards_offer_one_size_action_and_disable_sold_out_colors(): void
+    {
+        $product = $this->jacket();
+        $black = $product->colors()->where('name', 'Black')->firstOrFail();
+        $brown = $product->colors()->where('name', 'Brown')->firstOrFail();
+        $brown->variants()->update(['on_hand' => 0]);
+
+        $response = $this->get('/shop')->assertOk()
+            ->assertSee('card-swatches', false)
+            ->assertSee('aria-label="Brown unavailable"', false)
+            ->assertSee('class="button-secondary quick-add-trigger"', false)
+            ->assertSee('class="card-photo-link"', false)
+            ->assertSee('class="card-title-link"', false)
+            ->assertSee('data-grid-view="comfortable"', false)
+            ->assertSee(route('products.show', ['product' => $product->slug, 'color' => $black->id, 'currency' => 'PKR']));
+        $response->assertDontSee('card-size-preview', false);
+        $this->assertSame(1, substr_count($response->getContent(), 'class="button-secondary quick-add-trigger"'));
+    }
+
+    public function test_sold_out_cards_do_not_offer_quick_add(): void
+    {
+        $product = $this->jacket();
+        foreach ($product->colors as $color) {
+            $color->variants()->update(['on_hand' => 0]);
+        }
+        $this->get('/shop')->assertOk()->assertSee('Sold out')->assertSee('class="card-unavailable"', false)->assertDontSee('data-quick-add=', false)->assertDontSee('class="button-secondary quick-add-trigger"', false);
+    }
 }

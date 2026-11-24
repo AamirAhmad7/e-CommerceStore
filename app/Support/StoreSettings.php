@@ -4,6 +4,7 @@ namespace App\Support;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 final class StoreSettings
 {
@@ -36,6 +37,19 @@ final class StoreSettings
         self::forgetPublicValues();
     }
 
+    public static function printLogoUrl(): ?string
+    {
+        $path = self::publicValues()['print_logo'] ?? null;
+
+        return $path ? Storage::disk('public')->url($path) : null;
+    }
+
+    public static function setPrintLogo(string $path): void
+    {
+        DB::table('store_settings')->upsert([['key' => 'print_logo', 'value' => $path]], ['key'], ['value']);
+        self::forgetPublicValues();
+    }
+
     public static function brandName(): string
     {
         return self::publicValues()['brand_name'] ?? config('store.brand_name');
@@ -49,7 +63,7 @@ final class StoreSettings
         if ($memoize && $attributes->has('store_public_settings')) {
             return $attributes->get('store_public_settings');
         }
-        $values = Cache::store(self::cacheStore())->remember(self::cacheKey(), 300, fn () => DB::table('store_settings')->whereIn('key', ['brand_name', 'whatsapp_number', 'public_pages'])->pluck('value', 'key')->all());
+        $values = Cache::store(self::cacheStore())->remember(self::cacheKey(), 300, fn () => DB::table('store_settings')->whereIn('key', ['brand_name', 'whatsapp_number', 'public_pages', 'print_logo'])->pluck('value', 'key')->all());
         if ($memoize) {
             $attributes->set('store_public_settings', $values);
         }

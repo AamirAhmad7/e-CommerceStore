@@ -18,6 +18,8 @@ class Product extends Model implements HasMedia
     use InteractsWithMedia;
     use SoftDeletes;
 
+    protected $hidden = ['purchase_cost_minor'];
+
     protected $fillable = [
         'category_id',
         'name', 'seo_title', 'seo_description',
@@ -25,7 +27,7 @@ class Product extends Model implements HasMedia
         'description',
         'is_active',
         'usd_price_minor',
-        'pkr_price_minor',
+        'pkr_price_minor', 'purchase_cost_minor',
         'delivery_charge_minor',
         'size_guide_id', 'size_guide_mode', 'size_guide_override', 'material', 'lining', 'fit', 'care', 'closure',
     ];

@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class OrderLine extends Model
 {
+    protected $hidden = ['unit_cost_minor'];
+
     protected $guarded = ['id'];
 
     protected function casts(): array

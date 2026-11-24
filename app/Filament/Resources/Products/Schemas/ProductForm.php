@@ -334,6 +334,12 @@ class ProductForm
                 Tab::make('General')->icon('heroicon-o-pencil-square')->schema([$category, $slug, $description])->columns(2),
                 Tab::make('Pricing')->icon('heroicon-o-banknotes')->schema([
                     $pkrPrice->label('Pakistan selling price')->prefix('PKR'),
+                    TextInput::make('purchase_cost_minor')->label('Purchase cost per jacket (internal)')->prefix('PKR')
+                        ->visible(fn (): bool => \Illuminate\Support\Facades\Schema::hasColumn('products', 'purchase_cost_minor'))
+                        ->inputMode('decimal')->regex('/^\d{1,8}(?:\.\d{1,2})?$/')->nullable()
+                        ->formatStateUsing(fn ($state) => Pricing::decimal($state === null ? null : (int) $state))
+                        ->dehydrateStateUsing(fn ($state) => Pricing::parse($state, 'PKR'))
+                        ->helperText('One cost for all colors and sizes. New orders save this cost; old orders never change. Blank means unknown, not zero.'),
                     $usdPrice->label('International selling price')->prefix('USD'),
                     TextInput::make('delivery_charge_minor')->label('Product delivery charge')->prefix('PKR')
                         ->visible(fn (): bool => \Illuminate\Support\Facades\Schema::hasColumn('products', 'delivery_charge_minor'))

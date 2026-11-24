@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\Cart;
 use App\Services\Checkout;
 use App\Services\CommerceSettings;
+use App\Services\Dispatching;
 use App\Services\Fulfillment;
 use App\Services\Inventory;
 use App\Services\OrderCare;
@@ -347,5 +348,28 @@ class OrderCareTest extends TestCase
         $this->assertNotNull($order->fresh()->delivered_at);
         $this->assertSame($lines, $order->lines()->get()->toArray());
         $this->assertSame(8, $this->variant->fresh()->on_hand);
+    }
+
+    public function test_address_correction_holds_packing_and_preserves_money_and_audit(): void
+    {
+        $order = $this->order();
+        $care = app(OrderCare::class);
+        $key = (string) Str::uuid();
+        $request = $care->request($order->id, 'address', $key, 'New street, Sialkot, Punjab');
+        $this->assertSame($request->id, $care->request($order->id, 'address', $key, 'New street, Sialkot, Punjab')->id);
+        $this->assertNotNull(Dispatching::blocked($order));
+        app(Fulfillment::class)->transition($order->id, 'confirmed', $this->staff->id);
+        $this->invalid(fn () => app(Fulfillment::class)->transition($order->id, 'processing', $this->staff->id));
+        $total = $order->total_minor;
+        $address = ['address' => 'New street', 'city' => 'Sialkot', 'region' => 'Punjab', 'postal_code' => '51310'];
+        $care->decide($order->id, $request->id, true, $this->staff->id, 'Address corrected before packing.', null, $address);
+        $care->decide($order->id, $request->id, true, $this->staff->id, 'Address corrected before packing.', null, $address);
+        $this->assertSame('Sialkot', $order->fresh()->customer['city']);
+        $this->assertSame($total, $order->fresh()->total_minor);
+        $this->assertSame(1, $order->histories()->where('note', 'like', 'Address correction approved.%')->count());
+        $this->assertSame(1, $order->events()->where('event_key', 'decision-'.$request->id)->count());
+        app(Fulfillment::class)->transition($order->id, 'processing', $this->staff->id);
+        $this->invalid(fn () => $care->request($order->id, 'address', (string) Str::uuid(), 'Too late'));
+        $this->assertSame(10, $this->variant->fresh()->on_hand);
     }
 }

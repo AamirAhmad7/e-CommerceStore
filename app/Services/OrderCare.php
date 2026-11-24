@@ -16,6 +16,11 @@ final class OrderCare
         return in_array($order->status, ['pending', 'confirmed', 'processing'], true);
     }
 
+    public static function canChangeAddress(Order $order): bool
+    {
+        return in_array($order->status, ['pending', 'confirmed'], true) && ! $order->shipment;
+    }
+
     public static function canReturn(Order $order): bool
     {
         $settings = CommerceSettings::get();
@@ -33,7 +38,7 @@ final class OrderCare
 
     public function request(int $orderId, string $type, string $key, string $reason, array $quantities = []): OrderRequest
     {
-        Validator::make(compact('type', 'key', 'reason', 'quantities'), ['type' => 'required|in:cancellation,return', 'key' => 'required|uuid', 'reason' => 'required|string|max:1000', 'quantities.*' => 'required|integer|min:0|max:100'])->validate();
+        Validator::make(compact('type', 'key', 'reason', 'quantities'), ['type' => 'required|in:cancellation,return,address', 'key' => 'required|uuid', 'reason' => 'required|string|max:1000', 'quantities.*' => 'required|integer|min:0|max:100'])->validate();
 
         return DB::transaction(function () use ($orderId, $type, $key, $reason, $quantities): OrderRequest {
             $order = Order::with('lines')->lockForUpdate()->findOrFail($orderId);
@@ -49,7 +54,11 @@ final class OrderCare
 
                 return $existing;
             }
-            if ($type === 'cancellation') {
+            if ($type === 'address') {
+                if (! self::canChangeAddress($order) || $quantities || $order->requests()->where('type', 'address')->where('status', 'pending')->exists()) {
+                    $this->invalid('Address corrections are available once before packing. Contact the store for help.');
+                }
+            } elseif ($type === 'cancellation') {
                 if (! self::canCancel($order) || $order->requests()->where('type', 'cancellation')->where('status', 'pending')->exists()) {
                     $this->invalid('Cancellation is unavailable or already requested.');
                 }
@@ -79,10 +88,10 @@ final class OrderCare
         }, 5);
     }
 
-    public function decide(int $orderId, int $requestId, bool $approve, int $actor, string $explanation, ?string $note = null): void
+    public function decide(int $orderId, int $requestId, bool $approve, int $actor, string $explanation, ?string $note = null, array $address = []): void
     {
         Validator::make(compact('explanation', 'note'), ['explanation' => 'required|string|max:1000', 'note' => 'nullable|string|max:1000'])->validate();
-        DB::transaction(function () use ($orderId, $requestId, $approve, $actor, $explanation, $note): void {
+        DB::transaction(function () use ($orderId, $requestId, $approve, $actor, $explanation, $note, $address): void {
             $order = Order::lockForUpdate()->findOrFail($orderId);
             $request = $order->requests()->lockForUpdate()->findOrFail($requestId);
             $target = $approve ? 'approved' : 'rejected';
@@ -91,6 +100,14 @@ final class OrderCare
                     return;
                 }
                 $this->invalid('Another staff member already decided this request. Refresh to see the decision.');
+            }
+            if ($approve && $request->type === 'address') {
+                if (! self::canChangeAddress($order)) {
+                    $this->invalid('The order is already being packed or has closed. Reject this request and contact the customer.');
+                }
+                $validated = Validator::make($address, ['address' => 'required|string|max:500', 'city' => 'required|string|max:100', 'region' => 'required|string|max:100', 'postal_code' => 'nullable|string|max:20'])->validate();
+                $order->histories()->create(['actor_id' => $actor, 'status' => $order->status, 'payment_status' => $order->payment_status, 'note' => 'Address correction approved. Previous delivery address: '.json_encode(array_intersect_key($order->customer, array_flip(['address', 'city', 'region', 'postal_code'])), JSON_THROW_ON_ERROR)]);
+                $order->update(['customer' => array_replace($order->customer, $validated)]);
             }
             if ($approve && $request->type === 'cancellation') {
                 if (! self::canCancel($order)) {

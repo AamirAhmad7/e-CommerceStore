@@ -6,7 +6,15 @@
 <h1 class="page-heading">Your order</h1><p>Thank you. Your order is received. Keep this page to follow confirmation, packing and delivery.</p>@if($support = \App\Support\StoreSettings::whatsappNumber())<p><a class="button-secondary" href="https://wa.me/{{ $support }}?text={{ rawurlencode('Hello, I would like an update on order '.$order->number) }}" target="_blank" rel="noopener">Ask about this order on WhatsApp</a></p>@endif<p>{{ $order->number }}</p>
 @php($stages = ['pending' => 'Order received', 'confirmed' => 'Confirmed', 'processing' => 'Preparing your order', 'shipped' => 'With the courier', 'delivered' => 'Delivered', 'cancelled' => 'Cancelled', 'expired' => 'Payment deadline expired', 'returned' => 'Returned'])
 <p>Order progress: <strong>{{ $order->stageLabel() }}</strong></p>
-<p>Confirmed &rarr; Packed and ready for courier &rarr; Assigned to courier &rarr; Completed (delivered)</p>
+@php($progress = ['pending' => 0, 'confirmed' => 1, 'processing' => $order->shipment?->stage === 'packed' ? 2 : 1, 'shipped' => 3, 'delivered' => 4])
+@php($step = $progress[$order->status] ?? null)
+@if($step !== null)
+<ol class="order-progress" aria-label="Order progress">
+@foreach(['Received', 'Confirmed', 'Packed', 'With courier', 'Delivered'] as $index => $label)
+<li class="{{ $index <= $step ? 'is-reached' : '' }}" @if($index === $step) aria-current="step" @endif><span>{{ $index + 1 }}</span>{{ $label }}</li>
+@endforeach
+</ol>
+@endif
 @if($order->status === 'pending')<p>We will review your order before preparing it.</p>@endif
 @if($order->payment_method === 'cod' && $order->payment_status === 'unpaid')<p>Pay cash when your order arrives. No advance payment is required.</p>@endif
 <p>Payment progress: <strong>{{ str_replace('_',' ',$order->payment_status) }}</strong></p>
@@ -18,7 +26,7 @@
 <h2>Parcel tracking</h2><p>{{ $parcel->courier_name }} {{ $parcel->service_name }}</p>
 @if($parcel->tracking_number)<p>Tracking number: {{ $parcel->tracking_number }}</p>@endif
 @if($parcel->trackingUrl())<p><a href="{{ $parcel->trackingUrl() }}" target="_blank" rel="noopener noreferrer">Track parcel</a></p>@endif
-<p>Parcel progress: {{ str_replace('_', ' ', $order->dispatch_status) }}.</p>
+<p>Parcel progress: {{ $order->stageLabel() }}.</p>
 @endif
 <h2>Delivery</h2><p>{{ $order->shipping_name }}</p><p>{{ $order->customer['name'] }}<br>{{ $order->customer['address'] }}<br>{{ $order->customer['city'] }}, {{ $order->customer['region'] }} {{ $order->customer['postal_code'] ?? '' }}<br>Pakistan</p>
 <h2>Original purchase totals</h2>
@@ -48,6 +56,10 @@
 <label>{{ $line->product_name }} / {{ $line->color }} / {{ $line->size }} (purchased {{ $line->quantity }}; eligible {{ $remaining }})<input type="number" name="quantities[{{ $line->id }}]" min="0" max="{{ $remaining }}" value="0" required></label>
 @endforeach
 <label>Reason<textarea name="reason" required maxlength="1000"></textarea></label><button class="button">Request selected returns</button></form>
+@endif
+@if($care::canChangeAddress($order) && !$order->requests->where('type','address')->where('status','pending')->count())
+<details class="order-cancellation"><summary>Correct my delivery address</summary><p>Send the complete corrected address, city or district, and province. The store will review it before packing. Your current address stays in place until approval.</p>
+<form action="{{ route('orders.request',$order->access_token) }}" method="post">@csrf<input type="hidden" name="type" value="address"><input type="hidden" name="submission_key" value="{{ \Illuminate\Support\Str::uuid() }}"><label>Requested address correction<textarea name="reason" required maxlength="1000">{{ old('reason') }}</textarea></label><button class="button">Request address correction</button></form></details>
 @endif
 <h2>Your requests</h2>
 @forelse($order->requests as $r)<article><h3>{{ ucfirst($r->type) }} #{{ $r->id }}: {{ $r->status }}</h3><p>{{ $r->reason }}</p>

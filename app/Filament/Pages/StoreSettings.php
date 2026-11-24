@@ -6,9 +6,14 @@ use App\Support\StoreSettings as Settings;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Gate;
+use Livewire\WithFileUploads;
 
 class StoreSettings extends Page
 {
+    use WithFileUploads;
+
+    public $printLogo = null;
+
     protected static string|\UnitEnum|null $navigationGroup = 'Settings';
 
     protected string $view = 'filament.pages.store-settings';
@@ -39,6 +44,7 @@ class StoreSettings extends Page
         $this->whatsappNumber = trim($this->whatsappNumber);
 
         $this->validate([
+            'printLogo' => 'nullable|image|mimes:png,jpg,jpeg,webp|max:2048|dimensions:max_width=4000,max_height=4000',
             'pages.about' => 'nullable|string|max:6000',
             'pages.address' => 'nullable|string|max:500',
             'pages.hours' => 'nullable|string|max:500',
@@ -52,6 +58,10 @@ class StoreSettings extends Page
             'whatsappNumber.regex' => 'Use an international number with country code, 8–15 digits, and an optional leading +. Do not include spaces or punctuation.',
         ]);
 
+        if ($this->printLogo) {
+            Settings::setPrintLogo($this->printLogo->store('branding', 'public'));
+            $this->printLogo = null;
+        }
         Settings::savePages($this->pages);
         Settings::setBrandName($this->brandName);
         Settings::setWhatsappNumber($this->whatsappNumber);

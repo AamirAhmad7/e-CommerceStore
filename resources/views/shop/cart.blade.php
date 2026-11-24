@@ -12,6 +12,7 @@
 @if($line['available'] === 1)<p class="stock-note">Last piece</p>@endif
 @if(!$line['valid'])<p role="alert">This item cannot be ordered at this quantity. Available: {{ $line['available'] }}. Remove it or reduce the quantity; contact us if you need help.</p>@endif</div>
 <form action="{{ route('cart.update',$line['id']) }}" method="post" data-cart-quantity-form><input type="hidden" name="after_update" value="cart">@csrf @method('PATCH')<label>Quantity<input type="number" name="quantity" min="0" max="{{ min(100, $line['available']) }}" value="{{ $line['quantity'] }}" required aria-label="Quantity for {{ $line['variant']?->sku }}"></label><button class="button" data-update-quantity>Update quantity</button><button name="quantity" value="0" class="text-button">Remove</button></form>
+@if($line['product']?->is_active)<form action="{{ route('saved.cart', $line['id']) }}" method="post">@csrf<button class="button-secondary">Save for later</button></form>@endif
 <strong>{{ \App\Services\Pricing::format($line['total'],$quote['currency']) }}</strong>
 @if(isset($promotion['lines'][$line['id']]) && $promotion['lines'][$line['id']]['discount']>0)<p>You save {{ \App\Services\Pricing::format($promotion['lines'][$line['id']]['discount']) }} on this line.</p>@endif
 </article>@endforeach

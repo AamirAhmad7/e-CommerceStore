@@ -14,7 +14,9 @@ use App\Support\StoreSettings;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -27,6 +29,21 @@ class PackingSlipTest extends TestCase
     {
         $connection = config('database.default');
         $this->assertContains(config("database.connections.$connection.database"), [':memory:', 'leather_store_variant_regression_test']);
+    }
+
+    public function test_owner_can_upload_a_print_logo(): void
+    {
+        $this->withoutVite();
+        config(['app.env' => 'local']);
+        Storage::fake('public');
+        $this->actingAs(User::factory()->create());
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Livewire::test(\App\Filament\Pages\StoreSettings::class)
+            ->set('brandName', 'Print test store')
+            ->set('printLogo', UploadedFile::fake()->image('logo.png', 200, 100))
+            ->call('save')->assertHasNoErrors();
+        $this->assertNotNull(StoreSettings::printLogoUrl());
+        $this->assertCount(1, Storage::disk('public')->files('branding'));
     }
 
     public function test_two_sizes_print_saved_order_details_without_exposing_private_data(): void
@@ -68,7 +85,7 @@ class PackingSlipTest extends TestCase
         $this->assertSame('pending', $order->fresh()->status);
         $this->get($url.'?document=address')->assertOk()->assertSee('COD TO COLLECT')->assertSee('PKR 55,500')
             ->assertSee('Demo Recipient')->assertSee('03000000000')->assertDontSee('DEMO-BLK-M')->assertDontSee($order->access_token);
-        $this->get($url.'?document=invoice')->assertOk()->assertSee('Invoice')->assertSee('PKR 55,500')->assertSee('Saved demo jacket');
+        $this->get($url.'?document=invoice')->assertOk()->assertSee('Invoice')->assertSee('PKR 55,500')->assertSee('Saved demo jacket')->assertSee('INV-'.str_pad((string) $order->id, 8, '0', STR_PAD_LEFT))->assertSee('Invoice date:')->assertSee('class="numeric"', false)->assertSee('Sample SF monogram');
         $this->get($url.'?document=products')->assertOk()->assertSee('DEMO-BLK-M')->assertSee('DEMO-BLK-L')->assertDontSee('Demo Recipient')->assertDontSee('PKR 55,500');
         $this->get($url.'?document=unknown')->assertNotFound();
         $order->update(['collected_minor' => 50000]);

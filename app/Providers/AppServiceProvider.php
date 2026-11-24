@@ -37,6 +37,6 @@ class AppServiceProvider extends ServiceProvider
             $model::deleted(fn () => ProductWorkspace::forget());
         }
         Gate::define('manage-commerce', [CommerceAccess::class, 'allowed']);
-        Gate::define('verify-payments', [CommerceAccess::class, 'allowed']);
+        Gate::define('verify-payments', [CommerceAccess::class, 'owner']);
     }
 }

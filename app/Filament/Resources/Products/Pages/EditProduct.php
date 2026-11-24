@@ -17,6 +17,7 @@ use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Support\Exceptions\Halt;
+use Illuminate\Support\Facades\Schema;
 
 class EditProduct extends EditRecord
 {
@@ -25,6 +26,15 @@ class EditProduct extends EditRecord
     public static bool $formActionsAreSticky = true;
 
     protected static string $resource = ProductResource::class;
+
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        if (Schema::hasColumn('products', 'purchase_cost_minor')) {
+            $data['purchase_cost_minor'] = $this->getRecord()->purchase_cost_minor;
+        }
+
+        return $data;
+    }
 
     public function getTitle(): string
     {
