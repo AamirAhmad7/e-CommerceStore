@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'admin_owner_ids' => array_values(array_filter(array_map('intval', explode(',', env('STORE_ADMIN_OWNER_IDS', ''))))),
+    'admin_manager_ids' => array_values(array_filter(array_map('intval', explode(',', env('STORE_ADMIN_MANAGER_IDS', ''))))),
+    'admin_mfa_enabled' => (bool) env('STORE_ADMIN_MFA_ENABLED', false),
+
+    'local_backup_enabled' => (bool) env('STORE_LOCAL_BACKUP_ENABLED', false),
     'pakistan_only' => (bool) env('STORE_PAKISTAN_ONLY', true),
     'delivery_estimate' => env('STORE_DELIVERY_ESTIMATE', ''),
     'confirm_cod_whatsapp' => (bool) env('STORE_CONFIRM_COD_WHATSAPP', false),

@@ -30,8 +30,11 @@ final class Fulfillment
             if ($target === 'shipped' && $order->shipment && $order->shipment->stage !== 'with_courier') {
                 throw ValidationException::withMessages(['status' => 'Use Dispatch handover to assign courier and tracking before shipping.']);
             }
-            if ($target === 'shipped' && $order->requests()->where('type', 'cancellation')->where('status', 'pending')->exists()) {
-                throw ValidationException::withMessages(['status' => 'Review the pending cancellation request before shipping.']);
+            if ($target === 'processing' && $order->requests()->where('type', 'address')->where('status', 'pending')->exists()) {
+                throw ValidationException::withMessages(['status' => 'Review the address correction before packing.']);
+            }
+            if ($target === 'shipped' && $order->requests()->whereIn('type', ['cancellation', 'address'])->where('status', 'pending')->exists()) {
+                throw ValidationException::withMessages(['status' => 'Review pending cancellation or address correction requests before packing or shipping.']);
             }
             if ($target === 'delivered' && $order->shipment && ! in_array($order->shipment->stage, ['with_courier', 'issue'], true)) {
                 throw ValidationException::withMessages(['status' => 'A returning parcel cannot be marked delivered. Receive it at the store.']);
@@ -47,9 +50,20 @@ final class Fulfillment
             }
             $order->update(['status' => $target] + ($target === 'delivered' ? ['delivered_at' => now()] : []));
             $order->histories()->create(['actor_id' => $actor, 'status' => $target, 'payment_status' => $order->payment_status, 'note' => 'Order '.$target]);
-            $message = 'Your order is '.$target.'. View your order for available next steps.';
+            $message = match ($target) {
+                'confirmed' => 'Your order is confirmed. We will prepare your items for packing.',
+                'processing' => 'We are preparing your order. We will update you when it is packed.',
+                'shipped' => 'Your order has been handed to the courier.',
+                'delivered' => 'Your order has been delivered. Your private order page shows any available return options.',
+                'cancelled' => 'Your order has been cancelled. Any eligible refund is handled separately.',
+                'expired' => 'Your payment deadline has passed and the stock reservation has ended. Contact us if you have already paid.',
+                default => 'View your order for the latest progress and available next steps.',
+            };
             if ($target === 'shipped' && $order->shipment) {
                 $message .= ' Courier: '.$order->shipment->courier_name.'. Tracking: '.$order->shipment->tracking_number.'.';
+                if ($trackingUrl = $order->shipment->trackingUrl()) {
+                    $message .= ' Track parcel: '.$trackingUrl;
+                }
             }
             OrderMessages::record($order, 'status-'.$target, 'Order '.$target, $message);
 

@@ -22,6 +22,7 @@ use App\Services\Dispatching;
 use App\Services\Fulfillment;
 use App\Services\Inventory;
 use App\Services\OrderCare;
+use App\Support\OrderMargin;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -115,6 +116,7 @@ class DispatchSettlementTest extends TestCase
         $quantities = $order->lines->pluck('quantity', 'id')->all();
         app(Dispatching::class)->pack($order->id, $snapshot, $quantities);
         app(Dispatching::class)->pack($order->id, $snapshot, $quantities);
+        $this->assertSame(1, $order->events()->where('event_key', 'like', 'packed-%')->count());
         $this->pack($prepaid);
         $this->assertSame(20, $this->variant->fresh()->on_hand);
         $rows = [$this->handoverRow($order, '000123/A B'), $this->handoverRow($prepaid, '000124')];
@@ -228,5 +230,35 @@ class DispatchSettlementTest extends TestCase
         $this->get(route('settlements.template'))->assertOk();
         Livewire::test(SettlementsPage::class)->assertCanSeeTableRecords($statement->lines);
         $this->assertSame(0, DB::table('order_refunds')->count());
+    }
+
+    public function test_saved_product_cost_and_reconciled_contribution_do_not_change_with_later_prices(): void
+    {
+        $product = $this->variant->productColor->product;
+        $product->update(['purchase_cost_minor' => 400000]);
+        $order = $this->deliverAndCollect('MARGIN-001');
+        $this->assertSame(400000, (int) $order->lines()->first()->unit_cost_minor);
+        $product->update(['purchase_cost_minor' => 500000]);
+        $this->assertSame(400000, (int) $order->lines()->first()->unit_cost_minor);
+        $this->assertNull(OrderMargin::calculate($order)['contribution']);
+        $service = app(CourierSettlements::class);
+        $data = ['courier_id' => $this->courier->id, 'external_reference' => 'MARGIN-PAYOUT', 'payout_date' => today()->format('Y-m-d'), 'bank_reference' => 'Isolated margin fixture', 'rows' => [['tracking_number' => 'MARGIN-001', 'gross_cod' => '18500.00', 'fee_deduction' => '250.00', 'net_remitted' => '18250.00']]];
+        $preview = $service->preview($data);
+        $service->post($data, $preview['token']);
+        $margin = OrderMargin::calculate($order->fresh());
+        $this->assertSame(800000, $margin['cost']);
+        $this->assertSame(25000, $margin['fees']);
+        $this->assertSame(1025000, $margin['contribution']);
+        $this->assertArrayNotHasKey('purchase_cost_minor', $product->toArray());
+        $this->assertArrayNotHasKey('unit_cost_minor', $order->lines()->first()->toArray());
+        $line = $order->lines()->first();
+        $request = app(OrderCare::class)->request($order->id, 'return', (string) Str::uuid(), 'Return one', [$line->id => 1]);
+        app(OrderCare::class)->decide($order->id, $request->id, true, auth()->id(), 'Approved');
+        app(OrderCare::class)->receive($order->id, $request->id, [$request->lines()->first()->id => ['resellable' => 1, 'damaged' => 0]], auth()->id());
+        app(OrderCare::class)->refund($order->id, 925000, 'PKR', 'MARGIN-REFUND', auth()->id());
+        $margin = OrderMargin::calculate($order->fresh());
+        $this->assertSame(400000, $margin['cost']);
+        $this->assertSame(925000, $margin['refunds']);
+        $this->assertSame(500000, $margin['contribution']);
     }
 }

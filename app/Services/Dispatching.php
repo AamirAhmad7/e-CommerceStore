@@ -21,7 +21,7 @@ final class Dispatching
     {
         return Order::query()->whereIn('status', ['pending', 'confirmed', 'processing'])->whereDoesntHave('shipment')
             ->where(fn ($query) => $query->where('payment_method', '!=', 'bank')->orWhere('payment_status', 'paid'))
-            ->whereDoesntHave('requests', fn ($query) => $query->where('type', 'cancellation')->where('status', 'pending'));
+            ->whereDoesntHave('requests', fn ($query) => $query->whereIn('type', ['cancellation', 'address'])->where('status', 'pending'));
     }
 
     public static function collectible(Order $order): int
@@ -37,8 +37,8 @@ final class Dispatching
         if ($order->payment_method === 'bank' && $order->payment_status !== 'paid') {
             return 'Verify bank funds before packing.';
         }
-        if ($order->requests()->where('type', 'cancellation')->where('status', 'pending')->exists()) {
-            return 'Review the pending cancellation request first.';
+        if ($order->requests()->whereIn('type', ['cancellation', 'address'])->where('status', 'pending')->exists()) {
+            return 'Review the pending cancellation or address correction request first.';
         }
 
         return null;
@@ -93,6 +93,7 @@ final class Dispatching
             }
             $shipment = Shipment::create(['order_id' => $id, 'stage' => 'packed', 'packed_at' => now(), 'pack_key' => $key]);
             $this->history($order->fresh(), 'Full order packed; stock remains reserved.');
+            OrderMessages::record($order->fresh(), 'packed-'.$shipment->id, 'Order packed', 'Your order is packed and ready for courier handover. We will share tracking details after dispatch.');
 
             return $shipment;
         }, 5);

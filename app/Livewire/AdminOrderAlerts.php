@@ -15,6 +15,9 @@ class AdminOrderAlerts extends Component
         $pending = Order::where('status', 'pending')->count();
         $cancellations = Order::whereHas('requests', fn ($query) => $query->where('type', 'cancellation')->where('status', 'pending'))->count();
 
-        return view('livewire.admin-order-alerts', compact('pending', 'cancellations'));
+        $corrections = Order::whereHas('requests', fn ($query) => $query->where('type', 'address')->where('status', 'pending'))->count();
+        $failedMessages = Order::whereHas('events', fn ($query) => $query->whereNull('sent_at')->whereNotNull('last_error')->where('recipient', '!=', ''))->count();
+
+        return view('livewire.admin-order-alerts', compact('pending', 'cancellations', 'corrections', 'failedMessages'));
     }
 }

@@ -17,6 +17,12 @@ class OrderNotification implements ShouldQueue
 
     public int $tries = 3;
 
+    /** @return array<int, int> */
+    public function backoff(): array
+    {
+        return [60, 300];
+    }
+
     public function __construct(public int $orderId, public ?int $eventId = null) {}
 
     public function handle(): void

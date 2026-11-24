@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Payments\Gateways;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -66,10 +67,11 @@ final class Checkout
                 DB::table('promotion_redemptions')->insert(['promotion_id' => $promotion['snapshot']['id'], 'order_id' => $order->id, 'eligible_units' => $promotion['snapshot']['eligible_units'], 'eligible_minor' => $promotion['snapshot']['eligible_minor'], 'merchandise_discount_minor' => $promotion['snapshot']['merchandise_discount_minor'], 'shipping_discount_minor' => $promotion['snapshot']['shipping_discount_minor'], 'created_at' => now(), 'updated_at' => now()]);
             }
             $locked = $variants->keyBy('id');
+            $hasCostSnapshots = Schema::hasColumn('order_lines', 'unit_cost_minor');
             foreach ($quote['lines'] as $line) {
                 $v = $locked->get($line['id']);
                 $allocation = $promotion['lines'][$line['id']] ?? null;
-                $order->lines()->create(($allocation ? ['promotion_discount_minor' => $allocation['discount'], 'promotion_eligible' => $allocation['eligible'], 'unit_paid_minor' => $allocation['unit_paid']] : []) + ['product_variant_id' => $v->id, 'product_name' => $line['product']->name, 'color' => $v->productColor->name, 'size' => $v->size, 'sku' => $v->sku, 'quantity' => $line['quantity'], 'unit_price_minor' => $line['price'], 'total_minor' => $line['total'], 'currency' => 'PKR']);
+                $order->lines()->create(($hasCostSnapshots ? ['unit_cost_minor' => $line['product']->purchase_cost_minor] : []) + ($allocation ? ['promotion_discount_minor' => $allocation['discount'], 'promotion_eligible' => $allocation['eligible'], 'unit_paid_minor' => $allocation['unit_paid']] : []) + ['product_variant_id' => $v->id, 'product_name' => $line['product']->name, 'color' => $v->productColor->name, 'size' => $v->size, 'sku' => $v->sku, 'quantity' => $line['quantity'], 'unit_price_minor' => $line['price'], 'total_minor' => $line['total'], 'currency' => 'PKR']);
                 app(Inventory::class)->change($v, 0, $line['quantity'], 'Order reservation', $order->id);
             }
             $order->histories()->create(['status' => 'pending', 'payment_status' => 'unpaid', 'note' => 'Order placed; stock reserved.']);

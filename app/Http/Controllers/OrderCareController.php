@@ -67,7 +67,7 @@ class OrderCareController extends Controller
     public function submit(Request $request, string $token, OrderCare $care): RedirectResponse
     {
         $order = Order::where('access_token', $token)->firstOrFail();
-        $data = $request->validate(['type' => 'required|in:cancellation,return', 'submission_key' => 'required|uuid', 'reason' => 'required|string|max:1000', 'quantities' => 'nullable|array', 'quantities.*' => 'integer|min:0|max:100']);
+        $data = $request->validate(['type' => 'required|in:cancellation,return,address', 'submission_key' => 'required|uuid', 'reason' => 'required|string|max:1000', 'quantities' => 'nullable|array', 'quantities.*' => 'integer|min:0|max:100']);
         $care->request($order->id, $data['type'], $data['submission_key'], $data['reason'], $data['quantities'] ?? []);
 
         return redirect()->route('orders.show', $token)->with('status', 'Request received. The store will review it; no refund has been made.');

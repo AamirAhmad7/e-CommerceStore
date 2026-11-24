@@ -24,6 +24,14 @@
             </div>
 
             <div class="mt-6">
+                <label for="print-logo">Logo for printed documents</label>
+                <input id="print-logo" type="file" wire:model="printLogo" accept="image/png,image/jpeg,image/webp" aria-describedby="print-logo-help">
+                <p id="print-logo-help">PNG, JPG or WebP, up to 2 MB and 4000 pixels per side. Save to use it on address labels, invoices and picking documents. Until uploaded, a sample SF monogram is used.</p>
+                <p wire:loading wire:target="printLogo">Uploading logo...</p>
+                @error('printLogo')<p role="alert">{{ $message }}</p>@enderror
+                @if(\App\Support\StoreSettings::printLogoUrl())<img src="{{ \App\Support\StoreSettings::printLogoUrl() }}" alt="Current print logo" style="max-width:180px;max-height:90px;margin-top:12px;object-fit:contain">@endif
+            </div>
+            <div class="mt-6">
                 <label for="whatsapp-number">WhatsApp number (optional)</label>
                 <x-filament::input.wrapper :valid="! $errors->has('whatsappNumber')">
                     <x-filament::input id="whatsapp-number" type="tel" wire:model="whatsappNumber" maxlength="16" aria-describedby="whatsapp-number-hint whatsapp-number-error" />

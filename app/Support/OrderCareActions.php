@@ -58,7 +58,15 @@ final class OrderCareActions
             }
             $actions = [];
             foreach ([true => 'Approve', false => 'Reject'] as $approve => $label) {
-                $actions[] = Action::make(strtolower($label).'Request'.$request->id)->label($label.' request')->visible($request->status === 'pending')->schema(self::decisionFields())
+                $actions[] = Action::make(strtolower($label).'Request'.$request->id)->label($label.' request')->visible($request->status === 'pending')->schema([
+                    ...self::decisionFields(),
+                    ...($approve && $request->type === 'address' ? [
+                        Textarea::make('address.address')->label('Approved complete address')->required()->maxLength(500)->default($record->customer['address'] ?? ''),
+                        TextInput::make('address.city')->label('City / district')->required()->maxLength(100)->default($record->customer['city'] ?? ''),
+                        TextInput::make('address.region')->label('Province')->required()->maxLength(100)->default($record->customer['region'] ?? ''),
+                        TextInput::make('address.postal_code')->label('Postal code')->maxLength(20)->default($record->customer['postal_code'] ?? ''),
+                    ] : []),
+                ])
                     ->modalDescription('Rechecks the current order when submitted. Give the customer a clear explanation and next step. Approval alone never records a refund.')
                     ->after(fn ($livewire) => $livewire->refreshOrderCare())->action(function (array $data) use ($record, $request, $approve): void {
                         self::run($record, fn () => app(OrderCare::class)->decide($record->id, $request->id, (bool) $approve, auth()->id(), $data['explanation'], $data['internal_note'] ?? null));

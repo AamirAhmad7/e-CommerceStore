@@ -24,7 +24,10 @@ class ProductController extends Controller
         $product->load('category');
         abort_unless($product->is_active && $product->category?->is_active, 404);
 
-        return $this->render($request, $product);
+        $recent = $request->session()->get('recent_jackets', []);
+        $request->session()->put('recent_jackets', array_slice(array_values(array_unique([$product->id, ...$recent])), 0, 12));
+
+        return $this->render($request, $product)->header('Cache-Control', 'private, no-store');
     }
 
     public function choices(Request $request, Product $product): JsonResponse

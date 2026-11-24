@@ -13,7 +13,9 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\PromotionController;
 use App\Http\Controllers\PurchaseDocumentController;
 use App\Http\Controllers\RestockAlertController;
+use App\Http\Controllers\SavedJacketsController;
 use App\Http\Controllers\ShopController;
+use App\Http\Controllers\StoreExportController;
 use App\Http\Controllers\StoreInformationController;
 use App\Http\Middleware\PrivateShopping;
 use App\Services\CommerceSettings;
@@ -86,3 +88,12 @@ Route::get('/robots.txt', function (): Response {
 
     return response($content)->header('Content-Type', 'text/plain; charset=UTF-8');
 })->name('robots');
+
+Route::get('/admin/store-exports/{dataset}.csv', StoreExportController::class)->middleware([PrivateShopping::class, 'throttle:10,1'])->name('store.export');
+
+Route::middleware(PrivateShopping::class)->group(function (): void {
+    Route::post('/cart/{variant}/save-for-later', [SavedJacketsController::class, 'saveCartItem'])->middleware('throttle:60,1')->block()->name('saved.cart');
+    Route::get('/saved-jackets', [SavedJacketsController::class, 'show'])->name('saved.show');
+    Route::post('/saved-jackets/{product:slug}', [SavedJacketsController::class, 'update'])->middleware('throttle:60,1')->block()->name('saved.update');
+    Route::delete('/recent-jackets', [SavedJacketsController::class, 'clear'])->block()->name('saved.clear');
+});

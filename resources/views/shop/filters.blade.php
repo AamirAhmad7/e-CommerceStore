@@ -14,6 +14,6 @@
         <fieldset class="filter-group"><legend>Price range <span>({{ $currency }})</span></legend><div class="price-inputs"><label><span class="filter-sub-label">From</span><input aria-label="Minimum price ({{ $currency }})" name="min" inputmode="decimal" placeholder="Min" value="{{ $filters['min'] ?? '' }}"></label><span aria-hidden="true">&ndash;</span><label><span class="filter-sub-label">To</span><input aria-label="Maximum price ({{ $currency }})" name="max" inputmode="decimal" placeholder="Max" value="{{ $filters['max'] ?? '' }}"></label></div></fieldset>
 
         <input type="hidden" name="currency" value="PKR">
-        <div class="filter-actions"><label class="stock-choice"><input type="checkbox" name="in_stock" value="1" @checked($filters['in_stock'] ?? false)> Only show available sizes</label><div><a class="text-button" href="{{ $clearUrl }}">Reset filters</a><button class="button">Show results</button></div></div>
+        <div class="filter-actions"><label class="stock-choice"><input type="checkbox" name="in_stock" value="1" @checked($filters['in_stock'] ?? false)> In stock only</label><div><a class="text-button" href="{{ $clearUrl }}">Reset filters</a><button class="button">Show results</button></div></div>
     </form>
 </details>

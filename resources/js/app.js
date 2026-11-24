@@ -133,8 +133,14 @@ if (document.querySelector('#quick-add') && typeof HTMLDialogElement !== 'undefi
 if (filtersPanel) {
     const wideFilters = matchMedia('(min-width:1024px)');
     const summary = filtersPanel.querySelector('summary');
+    const toolbar = document.querySelector('.catalog-toolbar');
+    const desktopSortSlot = document.querySelector('[data-desktop-sort-slot]');
     function positionFilters() {
         filtersPanel.open = wideFilters.matches;
+        if (toolbar && desktopSortSlot) {
+            if (wideFilters.matches) desktopSortSlot.append(toolbar);
+            else filtersPanel.before(toolbar);
+        }
         document.querySelector('.catalog-filters').scrollTop = 0;
     }
     positionFilters();
@@ -337,3 +343,26 @@ if (mobileBuy && mainBuy && 'IntersectionObserver' in window) {
 }
 
 if (document.querySelector('#commerce-events')) import('./commerce-events.js');
+
+const gridControl = document.querySelector('[data-grid-control]');
+if (gridControl) {
+    const catalog = gridControl.closest('.catalog-page');
+    const images = [...catalog.querySelectorAll('.product-card img[sizes]')];
+    images.forEach(image => { image.dataset.compactSizes = image.sizes; });
+    function setGridView(view) {
+        const selected = view === 'comfortable' ? 'comfortable' : 'compact';
+        catalog.dataset.gridView = selected;
+        gridControl.querySelectorAll('[data-grid-view]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.gridView === selected)));
+        images.forEach(image => { image.sizes = selected === 'comfortable' ? '(min-width:1920px) 800px, (min-width:1024px) calc(48vw - 130px), (min-width:667px) calc(48vw - 6px), calc(100vw - 24px)' : image.dataset.compactSizes; });
+    }
+    let saved;
+    try { saved = localStorage.getItem('sf-catalog-view'); } catch { /* A private browser can disable storage. */ }
+    setGridView(saved);
+    gridControl.hidden = false;
+    gridControl.addEventListener('click', event => {
+        const button = event.target.closest('[data-grid-view]');
+        if (!button) return;
+        setGridView(button.dataset.gridView);
+        try { localStorage.setItem('sf-catalog-view', catalog.dataset.gridView); } catch { /* Keep the current view without persistence. */ }
+    });
+}

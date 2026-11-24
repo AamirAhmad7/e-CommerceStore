@@ -3,7 +3,7 @@ Order {{ $order->number }}
 
 {{ $messageText }}
 
-Order progress: {{ $order->status }}
+Order progress: {{ $order->stageLabel() }}
 Payment progress: {{ $order->payment_status }}
 
 Purchased items:
@@ -24,6 +24,13 @@ Shipping saving: {{ \App\Services\Pricing::format($order->promotion_snapshot['sh
 {{ ucfirst($field) }}: {{ \App\Services\Pricing::format($order->{$field.'_minor'}, $order->currency) }}
 @endforeach
 Shipping method: {{ $order->shipping_name }}
+Payment method: {{ $order->payment_method === 'cod' ? 'Cash on delivery' : 'Bank transfer' }}
+{{ $order->payment_instructions }}
+Delivery address:
+{{ $order->customer['name'] ?? '' }}
+{{ $order->customer['address'] ?? '' }}
+{{ $order->customer['city'] ?? '' }}, {{ $order->customer['region'] ?? '' }} {{ $order->customer['postal_code'] ?? '' }}
+{{ $order->customer['phone'] ?? '' }}
 
 View your order and available next steps (private, do not share):
 {{ route('orders.show', $order->access_token) }}

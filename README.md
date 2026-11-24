@@ -1,4 +1,94 @@
-# Leather Store
+# Sialkot Fashion Studio
+
+Laravel storefront and Filament owner workspace for a jacket store. This guide describes the current workflows as of **23 November 2026**. Older release notes below are historical; their migration instructions, UI descriptions and environment snapshots may have been superseded.
+
+## Open the store
+
+- Local storefront: http://127.0.0.1:8000/
+- Shop: http://127.0.0.1:8000/shop
+- Admin: http://127.0.0.1:8000/admin
+- Sample collection in the normal store: http://127.0.0.1:8000/collections/sample-jacket-edit
+- Separate demo environment, when running: http://127.0.0.1:8001/
+
+The sample collection contains nine owner-authorized test products across three sample categories in the **normal database**. They use fictional details and reused photos; they are not isolated demo records. Existing real products were retained. Use the separate demo or automated test database for further trial orders and inventory writes.
+
+## Current shopping experience
+
+- Responsive catalog with sticky desktop filters, mobile filter disclosure, sorting, active filter chips, live search suggestions and Compact / Larger views. Filters retain query-string URLs and native form submission.
+- Compact product cards keep photos, names, prices and color swatches together. One bordered **Choose size** action opens the existing selection flow; extra size buttons over photos have been removed. Photos and names still open the product page. Unavailable colors are crossed out, and unavailable product actions are disabled.
+- Each color owns an ordered gallery shared by its sizes. Changing size within a color preserves the photo. Product pages retain size guides, larger images and exact-SKU availability checks.
+- PKR and USD prices are entered independently, with optional variant overrides. The admin PKR / USD / Both switch changes field visibility only. International inquiries do not collect payment or reserve inventory.
+- Cart quantities save automatically after a typing pause or committed change, with a no-JavaScript update fallback. Checkout collects contact and delivery details, reviews the final amount and rechecks price and stock on the server. Retried confirmation is deduplicated.
+- Private order links and Find my order support recovery and progress tracking. Order and payment statuses remain separate. Cancellation and address-change requests require the existing admin review workflow.
+
+## Owner workflows
+
+- **Catalog > Products > Edit > Pricing:** enter selling prices, optional owner-entered purchase cost and a product delivery charge. Product delivery is entered once for every color and size. Blank uses the store default; zero means free. Checkout uses the highest applicable product delivery charge once per order, subject to the configured free-delivery threshold.
+- **Catalog > Products > Edit > Colors & sizes:** edit colors, shared galleries and individual sizes; review saved prices, available stock and setup issues. Stock and price dialogs save separately from pending product-form edits.
+- **Settings > Commerce settings:** configure store-default delivery, free-delivery threshold, COD or manual bank transfer, international inquiry shipping and customer-service terms. New checkout does not add tax. Delivery and payment readiness must be satisfied before ordering is offered; owner setup instructions stay in admin.
+- **Orders / Dispatch:** review orders, confirm and pack them, assign courier details and record delivery outcomes. Print an invoice with product details or an address label with a prominent COD amount. Review sender/return address settings before using labels for real parcels.
+- **Purchasing:** manage suppliers, purchase orders and received stock. **Courier Settlements:** reconcile courier collections and differences.
+- **Marketing > Promotions:** create, preview, duplicate as draft and share campaigns using existing eligibility, expiry and redemption checks.
+- **Storefront > Homepage / Collections:** manage published merchandising. **Settings > Store settings:** edit branding, contact details and information-page content.
+- **Dashboard:** grouped attention cards prioritize nonzero queues; empty queues collapse. Charts show 14-day totals with dated labels, and traffic breakdowns include device, OS and browser percentages. These are aggregate page requests, not unique visitors or conversion rates.
+- **System setup and health:** review worker, scheduler, email, backup and access configuration. New-order and follow-up alerts refresh in admin. **Order margins** uses saved order-line cost snapshots; unknown costs and unresolved settlements are not presented as reliable profit.
+
+## Local setup and routine commands
+
+Use PHP 8.4 with the installed Laravel 13 / Filament 5 stack and the committed dependency lockfiles. This Laragon installation uses:
+
+~~~powershell
+$php = 'C:\laragon\bin\php\php-8.4.12-nts-Win32-vs17-x64\php.exe'
+~~~
+
+For a **new checkout only**, install dependencies, copy the example environment, configure its database, generate an application key and link public storage:
+
+~~~powershell
+composer install
+npm ci
+Copy-Item .env.example .env
+& $php artisan key:generate --no-interaction
+& $php artisan storage:link --no-interaction
+npm run build
+~~~
+
+Do not overwrite an existing .env or regenerate an existing store's application key. Configure database and mail settings before using the application. The example mail transport logs messages rather than delivering customer email.
+
+Inspect pending schema changes before applying them:
+
+~~~powershell
+& $php artisan migrate:status --no-interaction
+~~~
+
+Normal-database migrations require the owner's approval. After approval and a backup, apply only the intended migrations. Do not run the Composer setup script casually against the existing store: it includes migrations. Earlier approvals covered the closure/hardware field and the authenticator/product-cost migrations; this README update does not run any migrations.
+
+Run the local web server, queue worker and scheduler in separate terminals as needed:
+
+~~~powershell
+& $php artisan serve --host=127.0.0.1 --port=8000
+& $php artisan queue:work database --queue=default --tries=3
+& $php artisan schedule:work
+~~~
+
+The scheduler expires eligible unpaid orders, prunes traffic aggregates after 90 days and checks operations heartbeats. Local scheduled backups are opt-in through STORE_LOCAL_BACKUP_ENABLED; their configured schedule is 02:00 in the store timezone. A live deployment needs supervised workers, a scheduler and an independently stored, restore-tested backup.
+
+After frontend changes, run npm run build. For local asset development, use npm run dev. Keep real credentials, customer records and private order links out of documentation and source control.
+
+## Verification and remaining configuration
+
+Latest card simplification: CatalogDiscoveryTest and FitAndQuickAddTest passed **9 tests / 134 assertions**; production assets rebuilt. The catalog test measured **13 queries for both 1 and 12 cards** under the same fixture. This is a focused regression result, not a full-system performance audit.
+
+~~~powershell
+& $php vendor/bin/phpunit tests/Feature/CatalogDiscoveryTest.php tests/Feature/FitAndQuickAddTest.php
+~~~
+
+Use isolated test data for behavior checks. Final visual acceptance remains with the owner. For the latest change, check the Shop on a phone and desktop: one Choose size action per available card, no hover-size overlay, and working photo/title links.
+
+Live WhatsApp Business provider/account configuration, hosting and courier integration remain undecided. Existing WhatsApp inquiry links are separate from automatic provider messaging. Configure real email delivery, staff access, authenticator enrollment, approved shipping terms and backup operations before relying on production notifications. Purchase costs must be entered by the owner; historical missing costs are not guessed.
+
+## Historical release notes
+
+The following notes retain detailed implementation history and prior acceptance results. They are **not a current task list**. In particular, older references to tax configuration, missing COD, pending migrations, bare card links or hover-size selectors do not override the current guide above. Check current code and migration status before acting on an old command.
 
 ## Reachable filters and live search - 22 November 2026
 

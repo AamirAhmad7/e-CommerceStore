@@ -67,16 +67,16 @@ class AssistedSaleResource extends Resource
     {
         return [
             Hidden::make('version'),
-            Select::make('source')->options(['whatsapp' => 'WhatsApp', 'phone' => 'Phone'])->default('whatsapp')->required(),
-            TextInput::make('customer_label')->label('Customer label (optional)')->maxLength(255),
-            TextInput::make('phone')->tel()->maxLength(25),
-            TextInput::make('email')->email()->maxLength(254),
-            Textarea::make('internal_note')->maxLength(2000)->helperText('Internal only. Never included in the customer preview or copied message.'),
+            Select::make('source')->options(['whatsapp' => 'WhatsApp', 'phone' => 'Phone'])->default('whatsapp')->required()->helperText('Where the customer contacted you. This does not send a message.'),
+            TextInput::make('customer_label')->label('Customer name / reference (optional)')->placeholder('Example: Ali - black biker jacket')->helperText('A short reference to help you find this draft. The customer confirms delivery details at checkout.')->maxLength(255),
+            TextInput::make('phone')->tel()->placeholder('Example: +923001234567')->helperText('Customer contact number, not your store number.')->maxLength(25),
+            TextInput::make('email')->email()->placeholder('Example: customer@example.com')->helperText('Optional customer email. Do not enter a made-up address.')->maxLength(254),
+            Textarea::make('internal_note')->placeholder('Example: Customer asked for a relaxed fit; confirm size before sharing.')->maxLength(2000)->helperText('Internal only. Never included in the customer preview or copied message.'),
             Repeater::make('lines')->label('Proposed basket')->schema([
-                Select::make('variant_id')->label('Product / color / size / SKU / PKR / available')->searchable()->required()->live()
+                Select::make('variant_id')->label('Jacket, color and size')->placeholder('Search jacket name or SKU')->helperText('Select the exact color and size. Results include its PKR price and available stock.')->searchable()->required()->live()
                     ->getSearchResultsUsing(fn (string $search): array => ProductVariant::with('productColor.product.category')->where(fn ($query) => $query->where('sku', 'like', '%'.$search.'%')->orWhereHas('productColor.product', fn ($products) => $products->where('name', 'like', '%'.$search.'%')))->limit(40)->get()->mapWithKeys(fn ($variant): array => [$variant->id => AssistedSales::variantLabel($variant)])->all())
                     ->getOptionLabelUsing(fn ($value): ?string => ($variant = ProductVariant::with('productColor.product.category')->find($value)) ? AssistedSales::variantLabel($variant) : 'Unavailable SKU #'.$value),
-                TextInput::make('quantity')->integer()->minValue(1)->maxValue(100)->default(1)->required()->live(onBlur: true),
+                TextInput::make('quantity')->helperText('Number of pieces of this exact size and color.')->integer()->minValue(1)->maxValue(100)->default(1)->required()->live(onBlur: true),
             ])->columns(2)->minItems(1)->maxItems(50)->defaultItems(1)->reorderable(false)->live()->helperText('Repeated SKUs are combined into one quantity when saved. Stock is confirmed at checkout; saving or sharing does not reserve it.'),
             ViewEntry::make('preview')->view('filament.assisted-sale-preview')->viewData(function (Get $get): array {
                 try {
@@ -97,7 +97,7 @@ class AssistedSaleResource extends Resource
 
     public static function createAction(): CreateAction
     {
-        return CreateAction::make()->label('Create assisted sale')->modalHeading('Create assisted sale')->modalWidth('5xl')
+        return CreateAction::make()->label('Create assisted sale')->modalHeading('Create assisted sale')->modalDescription('Prepare a basket for a WhatsApp or phone customer. Save the draft, review and issue its link, then copy and send it yourself. The customer enters their address and confirms checkout.')->modalWidth('5xl')
             ->using(function (array $data): AssistedSale {
                 $sale = null;
                 CommerceAction::run(function () use ($data, &$sale): void {

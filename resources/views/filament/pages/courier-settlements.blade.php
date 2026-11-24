@@ -1,6 +1,6 @@
 <x-filament-panels::page>
     @if($orderFrom || $orderUntil)<p>Order creation date filter from Dispatch: {{ $orderFrom ?: 'any' }} through {{ $orderUntil ?: 'any' }}.</p>@endif
-    <div style="display:flex;gap:1rem;flex-wrap:wrap">
+    <div class="sf-admin-toolbar">
         <label>Payout date from <input type="date" wire:model.live="from"></label><label>Through <input type="date" wire:model.live="until"></label>
         <label>Courier <select wire:model.live="courier"><option value="">All</option>@foreach(App\Models\Courier::orderBy('name')->get() as $item)<option value="{{ $item->id }}">{{ $item->name }}</option>@endforeach</select></label>
         <label><input type="checkbox" wire:model.live="differences">Unresolved differences only</label>

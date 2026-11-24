@@ -3,7 +3,9 @@
 namespace App\Console\Commands;
 
 use App\Services\LocalRecovery;
+use App\Support\OperationsHealth;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 
 class StoreBackup extends Command
@@ -31,6 +33,7 @@ class StoreBackup extends Command
             }
         }
         File::put($directory.'/manifest.json', json_encode(['version' => 1, 'source_database' => $database, 'media_disk' => $disk, 'private_scope' => $demo ? 'demo-bank-proofs' : 'private', 'created_at' => now()->toIso8601String(), 'app_key_fingerprint' => hash('sha256', config('app.key')), 'files' => $recovery->hashes($directory)], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        Cache::store('file')->put(OperationsHealth::key('backup'), now()->timestamp, now()->addDays(30));
         $this->info('Backup complete: '.$directory);
         $this->line('Source: '.$database.'. Preserve the original APP_KEY separately. Pause uploads and workers for coordinated production backups.');
 

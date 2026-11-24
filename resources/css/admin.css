@@ -244,3 +244,69 @@ html[data-price-view="PKR"] [data-price-currency="USD"],html[data-price-view="US
 .dark .sf-analytics p { color:#cbd5e1; }
 .dark .sf-bar-track { background:#334155; }
 .dark .sf-bar-track i { background:#8cb7d8; }
+/* Readable operational workspaces; retain the wider product editor. */
+.fi-main:not(:has(.fi-resource-products)) { max-width:1500px; margin-inline:auto; width:100%; }
+.sf-admin-toolbar { display:flex; align-items:end; flex-wrap:wrap; gap:16px; }
+.sf-admin-toolbar label { display:grid; gap:8px; font-size:15px; font-weight:600; color:var(--sf-form-text); }
+.sf-admin-toolbar label:has(input[type=checkbox]) { display:flex; align-items:center; gap:10px; min-height:46px; padding:10px 14px; border:1px solid var(--sf-form-border); border-radius:8px; background:var(--sf-form-tint); }
+.sf-dispatch-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr)); gap:16px; }
+.sf-dispatch-kpi { text-align:left; padding:18px; border:1px solid var(--sf-form-border); border-radius:12px; background:var(--sf-form-surface); color:var(--sf-form-text); font-size:14px; line-height:1.6; }
+.sf-dispatch-kpi strong { font-size:24px; font-weight:700; }
+.sf-dispatch-kpi:hover { background:var(--sf-form-tint); }
+.sf-dispatch-tabs { display:flex; flex-wrap:wrap; gap:8px; }
+.sf-dispatch-tabs button { min-height:44px; padding:9px 14px; border:1px solid var(--sf-form-border); border-radius:8px; background:var(--sf-form-surface); color:var(--sf-form-text); font-size:14px; }
+.sf-dispatch-tabs button[aria-current=page] { background:#fff3cb; color:#6b4300; border-color:#b57b12; font-weight:700; }
+.sf-dispatch-tabs button:focus-visible,.sf-dispatch-kpi:focus-visible { outline:3px solid #d99b00; outline-offset:3px; }
+.fi-page-content > p,.sf-analytics p { font-size:15px; line-height:1.65; color:var(--sf-form-muted); }
+.sf-bar-track { background:transparent; border-bottom:1px solid var(--sf-form-border); }
+.dark .sf-bar-track { background:transparent; }
+.sf-daily-bars { color:var(--sf-form-muted); font-size:13px; }
+.sf-meter-row { padding-block:14px; gap:10px 12px; }
+@media(max-width:640px) { .sf-admin-toolbar > label { width:100%; } }
+.sf-operations-health > summary { cursor:pointer; padding:16px; border:1px solid var(--sf-form-border); border-radius:8px; color:var(--sf-form-text); background:var(--sf-form-surface); font-weight:650; margin-bottom:12px; }
+.sf-dispatch-tabs > a.fi-btn { display:inline-flex; align-items:center; min-height:44px; padding:10px 14px; border:1px solid var(--sf-form-border); border-radius:8px; background:var(--sf-form-surface); color:var(--sf-form-text); }
+/* Task-first dashboard, without reducing field or label contrast. */
+.sf-attention h2,.sf-dashboard-heading { font-size:22px; font-weight:700; color:var(--sf-form-text); }
+.sf-attention > p { font-size:15px; color:var(--sf-form-muted); margin-block:8px 20px; }
+.sf-attention-group { margin-bottom:20px; }
+.sf-attention-group h3 { font-size:17px; font-weight:650; margin-bottom:10px; }
+.sf-attention-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); gap:14px; }
+.sf-attention-card { position:relative; min-width:0; border:1px solid var(--sf-form-border); border-radius:12px; background:var(--sf-form-surface); }
+.sf-attention-card.has-work { background:#fff8e8; border-color:#c39640; }
+.sf-attention-card.is-clear { background:var(--sf-form-tint); color:var(--sf-form-muted); }
+.sf-attention-card > a { display:flex; flex-direction:column; justify-content:center; height:100%; min-height:120px; padding:18px 58px 18px 18px; text-decoration:none; color:inherit; font-size:16px; line-height:1.5; border-radius:11px; }
+.sf-attention-count { font-size:30px; font-weight:750; line-height:1.2; margin-bottom:8px; }
+.sf-attention-card small { font-size:13px; margin-top:6px; }
+.sf-attention-card:hover { border-color:#936811; box-shadow:0 3px 10px #172b4310; }
+.sf-attention-card a:focus-visible,.sf-card-help summary:focus-visible { outline:3px solid #c28b20; outline-offset:3px; }
+.sf-clear-tasks > summary,.sf-analytics-info > summary { cursor:pointer; min-height:44px; padding-block:12px; font-size:15px; font-weight:600; color:var(--sf-form-muted); }
+.sf-clear-tasks[open] > summary { margin-bottom:8px; }
+.sf-card-help { position:absolute; right:10px; top:12px; z-index:2; }
+.sf-card-help summary { display:grid; place-items:center; cursor:pointer; width:44px; height:44px; border:1px solid #9c7930; border-radius:50%; list-style:none; font-weight:700; }
+.sf-card-help summary::-webkit-details-marker { display:none; }
+.sf-card-help p { position:absolute; top:48px; right:0; width:min(260px,65vw); padding:14px; border:1px solid var(--sf-form-border); border-radius:8px; background:var(--sf-form-surface); color:var(--sf-form-text); box-shadow:0 5px 20px #0002; font-size:14px; line-height:1.6; }
+.sf-quick-actions > a.fi-btn { border-color:#b6c3d1; background:var(--sf-form-tint); box-shadow:none; font-weight:600; }
+.sf-quick-actions > a.fi-btn:hover { background:var(--sf-form-surface); border-color:#8293a9; }
+.sf-health-dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:8px; background:#15803d; }
+.sf-health-dot.needs-attention { background:#b77912; }
+.sf-health-count { display:inline-block; font-size:14px; font-weight:500; margin-left:10px; }
+.sf-chart-heading { display:flex; justify-content:space-between; align-items:start; gap:12px; margin-bottom:18px; }
+.sf-chart-heading h3 { margin:0; }
+.sf-chart-heading > div { display:grid; text-align:right; flex-shrink:0; }
+.sf-chart-heading strong { font-size:26px; font-weight:700; }
+.sf-chart-heading small { font-size:13px; color:var(--sf-form-muted); }
+.sf-day-value { display:block; height:20px; }
+.sf-daily-bars small { font-size:12px; line-height:1.4; }
+.sf-audience-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:start; gap:18px; }
+.sf-environment > section + section { margin-top:16px; padding-top:16px; border-top:1px solid var(--sf-form-border); }
+.sf-environment h4 { font-size:15px; font-weight:650; color:var(--sf-form-muted); }
+.sf-meter-row strong small { font-size:13px; font-weight:500; color:var(--sf-form-muted); }
+.dark .sf-attention-card.has-work { background:#392f1b; border-color:#b99042; }
+@media(max-width:1100px) { .sf-audience-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .sf-environment { grid-column:1/-1; } }
+@media(max-width:640px) { .sf-audience-grid { grid-template-columns:minmax(0,1fr); } .sf-health-count { display:block; margin-left:18px; } .sf-quick-actions > a.fi-btn { width:100%; justify-content:center; } }
+.sf-page-help { border:1px solid #a5b6c7; border-radius:10px; background:#f1f6fa; color:#243748; margin-bottom:1rem; font-size:15px; line-height:1.6; }
+.sf-page-help summary { padding:.7rem 1rem; cursor:pointer; font-weight:650; min-height:44px; }
+.sf-page-help summary:focus-visible { outline:3px solid #b77735; outline-offset:3px; }
+.sf-page-help>div { padding:0 1rem 1rem; max-width:90ch; }
+.sf-page-help p { margin:.5rem 0 0; }
+.dark .sf-page-help { background:#182532; color:#e6edf5; border-color:#526b81; }

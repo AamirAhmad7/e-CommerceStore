@@ -9,8 +9,8 @@
 </head>
 <body>
 <main>
-    <div class="print-controls"><button type="button" onclick="window.print()">Print</button><p>Use A4 portrait. Turn off browser headers and footers for a clean slip.</p></div>
-    <h1>{{ $brand }}</h1>
+    <div class="print-controls"><button type="button" onclick="window.print()">Print</button><p>Use A4 portrait, 100% scale. In Chrome: More settings: uncheck Headers and footers. Check the preview has no date, title or admin URL.</p></div>
+    @include('shop.print-brand')
     <p><strong>Packing slip</strong></p>
     <p>Order reference: <strong>{{ $order->number }}</strong></p>
     <h2>Ship to</h2>

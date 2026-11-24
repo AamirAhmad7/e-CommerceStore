@@ -5,6 +5,29 @@ if (root) {
     const sizes = document.querySelector('#sizes');
     let color = data.colors.find(item => item.id === data.selected);
     let selectedSize = data.size;
+    const shareButton = document.querySelector('[data-copy-product]');
+    if (shareButton) {
+        shareButton.hidden = false;
+        document.querySelector('[data-share-help]').hidden = false;
+        shareButton.addEventListener('click', async () => {
+            const url = new URL(location.pathname, location.origin);
+            if (color) url.searchParams.set('color', color.id);
+            if (selectedSize) url.searchParams.set('size', selectedSize);
+            const status = document.querySelector('[data-share-status]');
+            const fallback = document.querySelector('[data-share-fallback]');
+            fallback.hidden = true;
+            try {
+                await navigator.clipboard.writeText(url.href);
+                status.textContent = 'Product link copied.';
+            } catch {
+                fallback.value = url.href;
+                fallback.hidden = false;
+                fallback.focus();
+                fallback.select();
+                status.textContent = 'Select and copy this product link.';
+            }
+        });
+    }
 
     function renderSize() {
         const variant = color?.variants.find(item => item.size === selectedSize && item.can_buy);

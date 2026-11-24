@@ -69,6 +69,8 @@ class Dispatch extends Page implements HasTable
             $query = $this->base()->with(['shipment', 'lines'])->withSum('lines', 'quantity');
             if ($this->stage === 'packable') {
                 $query->whereIn('orders.id', Dispatching::readyToPack()->select('orders.id'));
+            } elseif ($this->stage === 'follow_up') {
+                $query->where('status', 'shipped')->whereHas('shipment', fn ($q) => $q->where('stage', 'with_courier')->where('updated_at', '<', now()->subDays(3)));
             } elseif ($this->stage === 'ready') {
                 $query->whereIn('status', ['pending', 'confirmed', 'processing'])->whereDoesntHave('shipment');
             } elseif ($this->stage === 'awaiting') {
@@ -81,8 +83,8 @@ class Dispatch extends Page implements HasTable
 
             return $query;
         })->columns([
-            TextColumn::make('number')->label('Order')->searchable()->url(fn (Order $record): string => OrderResource::getUrl('view', ['record' => $record->id])),
-            TextColumn::make('customer.city')->label('City'), TextColumn::make('lines_sum_quantity')->label('Units'), TextColumn::make('payment_method'),
+            TextColumn::make('number')->formatStateUsing(fn (Order $record): string => 'Order #'.$record->id)->description(fn (Order $record): string => $record->number)->wrap()->label('Order')->searchable()->url(fn (Order $record): string => OrderResource::getUrl('view', ['record' => $record->id])),
+            TextColumn::make('customer.city')->label('City'), TextColumn::make('lines_sum_quantity')->label('Units'), TextColumn::make('payment_method')->formatStateUsing(fn (string $state): string => $state === 'cod' ? 'COD' : ucwords(str_replace('_', ' ', $state))),
             TextColumn::make('dispatch_status')->label('Order stage')->formatStateUsing(fn (Order $record): string => $record->stageLabel())->badge(),
             TextColumn::make('collectible')->label('Amount to collect')->state(fn (Order $record): string => Pricing::format($record->shipment && $record->shipment->stage !== 'packed' ? $record->shipment->expected_cod_minor : Dispatching::collectible($record))),
             TextColumn::make('shipment.collected_minor')->label('Confirmed COD collected')->formatStateUsing(fn ($state): string => Pricing::format((int) $state))->placeholder('Not recorded'),

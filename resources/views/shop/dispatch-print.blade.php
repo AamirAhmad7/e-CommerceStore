@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow, noarchive"><title>{{ $title }} | {{ $brand }}</title>@include('shop.print-styles')</head>
 <body><main>
-<div class="print-controls"><button type="button" onclick="window.print()">Print</button> <a href="{{ App\Filament\Pages\Dispatch::getUrl() }}">Back to Dispatch</a><p>Printing changes no inventory, order state or notification.</p></div>
-<h1>{{ $brand }}</h1><h2>{{ $title }}</h2>
+<div class="print-controls"><button type="button" onclick="window.print()">Print</button> <a href="{{ App\Filament\Pages\Dispatch::getUrl() }}">Back to Dispatch</a><p>A4 portrait. In Chrome: More settings: uncheck Headers and footers. Printing changes no inventory, order state or notification.</p></div>
+@include('shop.print-brand')<h2>{{ $title }}</h2>
 @if($manifest)
     <p>Handover recorded {{ $manifest->created_at }} by staff #{{ $manifest->actor_id }}.</p>
     @foreach($manifest->shipments->groupBy('courier_id') as $parcels)

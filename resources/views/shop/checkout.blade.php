@@ -14,7 +14,7 @@
 <form action="{{ route('checkout.store') }}" method="post" class="checkout-grid">@csrf<input type="hidden" name="checkout_key" value="{{ $key }}"><input type="hidden" name="country" value="PK">
 <div><fieldset><legend>1. Contact</legend>
 @foreach(['name'=>['Full name','text','name',120],'email'=>['Email (optional)','email','email',254],'phone'=>['Phone','tel','tel',25]] as $field=>[$label,$type,$autocomplete,$length])
-<label for="checkout-{{ $field }}">{{ $label }}</label><input id="checkout-{{ $field }}" name="{{ $field }}" type="{{ $type }}" value="{{ old($field, session('checkout_input.'.$field)) }}" @required($field !== 'email') @if($field === 'phone') inputmode="tel" pattern="(?:03[0-9]{2}[ -]?[0-9]{7}|\+?923[0-9]{9})" aria-describedby="phone-hint" @endif maxlength="{{ $length }}" autocomplete="{{ $autocomplete }}" aria-invalid="{{ $errors->has($field)?'true':'false' }}" @if($errors->has($field)) aria-describedby="error-{{ $field }}" @endif>
+<label for="checkout-{{ $field }}">{{ $label }}</label><input id="checkout-{{ $field }}" name="{{ $field }}" type="{{ $type }}" value="{{ old($field, session('checkout_input.'.$field)) }}" @required($field !== 'email') @if($field === 'phone') inputmode="tel" pattern="(?:03[0-9]{2}(?: |-)?[0-9]{7}|\+?923[0-9]{9})" aria-describedby="phone-hint" @endif maxlength="{{ $length }}" autocomplete="{{ $autocomplete }}" aria-invalid="{{ $errors->has($field)?'true':'false' }}" @if($errors->has($field)) aria-describedby="error-{{ $field }}" @endif>
 @if($field === 'phone')<small id="phone-hint">03XX XXXXXXX</small>@endif
 @error($field)<p class="field-error" id="error-{{ $field }}">{{ $message }}</p>@enderror
 @endforeach</fieldset>
